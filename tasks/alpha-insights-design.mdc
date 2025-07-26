@@ -1,0 +1,343 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Design Document: Alpha Insights - Stock Portfolio Tracker
+
+## 1. Project Overview
+- **Application:** Alpha Insights - AI-Powered Stock Portfolio Tracker
+- **Description:** A sophisticated, dark-themed stock portfolio management application with glassmorphic UI, real-time market data, and AI-driven insights.
+- **Target Tech Stack:** React 18, TypeScript, Vite, TailwindCSS v3, Recharts, Flask Backend
+
+---
+
+## 2. Design Tokens
+
+### Colors
+- **Primary:** `#6366f1` (Indigo-500) - Main brand color for CTAs and highlights
+- **Secondary:** `#8b5cf6` (Violet-500) - Secondary brand color for accents
+- **Background Primary:** `#0f172a` (Slate-900) - Deep dark background
+- **Background Secondary:** `#1e293b` (Slate-800) - Secondary dark surfaces
+- **Background Tertiary:** `#334155` (Slate-700) - Interactive surfaces
+- **Text Primary:** `#ffffff` - Primary white text
+- **Text Secondary:** `#d1d5db` (Gray-300) - Secondary light gray text
+- **Text Muted:** `#9ca3af` (Gray-400) - Muted text for descriptions
+- **Accent:** `#ec4899` (Pink-500) - Alert and notification accents
+- **Success:** `#10b981` (Emerald-500) - Success states and positive metrics
+- **Warning:** `#f59e0b` (Amber-500) - Warning states
+- **Error:** `#ef4444` (Red-500) - Error states and negative metrics
+- **Glass Background:** `rgba(255, 255, 255, 0.1)` - Glassmorphic card backgrounds
+- **Glass Border:** `rgba(255, 255, 255, 0.2)` - Glassmorphic borders
+
+### Gradients
+- **Primary Gradient:** `from-indigo-500 to-purple-600` - Main brand gradient
+- **Hero Gradient:** `from-indigo-600 via-purple-600 to-pink-600` - Landing page hero
+- **Card Gradient:** `from-slate-800/50 to-slate-900/50` - Subtle card gradients
+- **Button Gradient:** `from-indigo-600 to-purple-600` - Primary button gradient
+
+### Typography
+- **Font Family:** 'Inter', -apple-system, BlinkMacSystemFont, sans-serif
+- **Base Font Size:** 16px
+- **Font Weights:**
+  - Light: 300
+  - Regular: 400
+  - Medium: 500
+  - SemiBold: 600
+  - Bold: 700
+  - ExtraBold: 800
+
+### Heading Scale
+- **H1:** 3rem (48px), font-weight: 800, line-height: 1.1
+- **H2:** 2.25rem (36px), font-weight: 700, line-height: 1.2
+- **H3:** 1.875rem (30px), font-weight: 600, line-height: 1.3
+- **H4:** 1.5rem (24px), font-weight: 600, line-height: 1.4
+- **H5:** 1.25rem (20px), font-weight: 600, line-height: 1.5
+- **H6:** 1.125rem (18px), font-weight: 600, line-height: 1.5
+
+### Body Text
+- **Large:** 1.125rem (18px), font-weight: 400, line-height: 1.6
+- **Base:** 1rem (16px), font-weight: 400, line-height: 1.6
+- **Small:** 0.875rem (14px), font-weight: 400, line-height: 1.5
+- **Tiny:** 0.75rem (12px), font-weight: 400, line-height: 1.4
+
+### Spacing Scale
+- **xs:** 4px (0.25rem)
+- **sm:** 8px (0.5rem)
+- **md:** 16px (1rem)
+- **lg:** 24px (1.5rem)
+- **xl:** 32px (2rem)
+- **2xl:** 48px (3rem)
+- **3xl:** 64px (4rem)
+- **4xl:** 80px (5rem)
+
+### Border Radius
+- **sm:** 4px (0.25rem)
+- **md:** 8px (0.5rem)
+- **lg:** 12px (0.75rem)
+- **xl:** 16px (1rem)
+- **2xl:** 24px (1.5rem)
+- **full:** 9999px
+
+### Shadows
+- **sm:** 0 1px 2px 0 rgba(0, 0, 0, 0.05)
+- **md:** 0 4px 6px -1px rgba(0, 0, 0, 0.1)
+- **lg:** 0 10px 15px -3px rgba(0, 0, 0, 0.1)
+- **xl:** 0 20px 25px -5px rgba(0, 0, 0, 0.1)
+- **2xl:** 0 25px 50px -12px rgba(0, 0, 0, 0.25)
+- **glass:** 0 8px 32px 0 rgba(31, 38, 135, 0.37)
+
+---
+
+## 3. Page Layout & Structure
+
+### Global Layout
+- **Overall Layout:** Single-page application with route-based navigation
+- **Navigation:** Sticky top navigation bar with glassmorphic styling
+- **Background:** Deep slate-900 with subtle gradient overlays
+- **Container:** Max-width responsive containers with proper padding
+
+### Navigation Structure
+- **Public Routes:** Landing Page, Login, Signup, Education Hub
+- **Protected User Routes:** Dashboard, Portfolio, Stock Research, Notifications, Profile Settings
+- **Protected Admin Routes:** Admin Dashboard, User Management, System Settings
+
+---
+
+## 4. Component Breakdown
+
+### Component: Navigation Bar
+- **Description:** Sticky top navigation with glassmorphic styling and role-based menu items
+- **Layout:** Horizontal flex layout with logo left, navigation center, user actions right
+- **Elements:**
+  - **Logo:** Alpha Insights brand mark with gradient text
+  - **Navigation Links:** Horizontal menu with hover states
+  - **User Avatar/Menu:** Dropdown with user actions
+  - **Mobile Menu:** Hamburger menu for responsive design
+- **Styling:** 
+  - Background: `bg-slate-900/80 backdrop-blur-lg`
+  - Border: `border-b border-slate-700/50`
+  - Height: `h-20` (80px)
+
+### Component: Landing Page Hero
+- **Description:** Full-screen hero section with animated 3D background and value proposition
+- **Layout:** Centered content with background animation overlay
+- **Elements:**
+  - **Animated Background:** CSS/Canvas animated geometric shapes
+  - **Main Headline:** "Welcome to Alpha Insights" - H1 with gradient text
+  - **Subheadline:** Value proposition paragraph
+  - **CTA Buttons:** Primary "Get Started" and secondary "Learn More"
+  - **Feature Cards:** Three glassmorphic cards highlighting key features
+- **Styling:**
+  - Background: Hero gradient with animated overlay
+  - Text: White with gradient accents
+  - Cards: Glassmorphic with backdrop blur
+
+### Component: GlassmorphicCard
+- **Description:** Reusable card component with frosted glass effect
+- **Layout:** Flexible container with proper padding and spacing
+- **Styling:**
+  - Background: `bg-white/10 backdrop-blur-lg`
+  - Border: `border border-white/20 rounded-xl`
+  - Shadow: Glass shadow effect
+  - Padding: `p-6` default, customizable
+
+### Component: GradientButton
+- **Description:** Primary action button with gradient background and hover effects
+- **Layout:** Inline-flex with proper padding and alignment
+- **States:**
+  - Default: Primary gradient background
+  - Hover: Slightly lighter gradient with scale transform
+  - Focus: Focus ring for accessibility
+  - Disabled: Reduced opacity
+- **Styling:**
+  - Background: Primary gradient
+  - Text: White, font-weight: 600
+  - Padding: `px-6 py-3`
+  - Border radius: `rounded-lg`
+
+### Component: User Dashboard
+- **Description:** Main user interface showing portfolio overview and key metrics
+- **Layout:** Grid layout with sidebar navigation and main content area
+- **Elements:**
+  - **Portfolio Summary Card:** Total value, gain/loss, percentage change
+  - **Quick Stats Grid:** Key metrics in glassmorphic cards
+  - **Performance Chart:** Interactive chart showing portfolio performance
+  - **Recent Activity List:** Latest transactions and updates
+  - **Quick Actions:** Add investment, view alerts, research stocks
+- **Styling:**
+  - Layout: CSS Grid with responsive breakpoints
+  - Cards: Glassmorphic styling with subtle gradients
+  - Charts: Custom Recharts styling with brand colors
+
+### Component: Stock Research Page
+- **Description:** Search and analyze stocks with detailed metrics and charts
+- **Layout:** Search header with results grid and detail modal
+- **Elements:**
+  - **Search Bar:** Prominent search input with autocomplete
+  - **Results Table:** Sortable table with key metrics
+  - **Stock Detail Modal:** Comprehensive stock information overlay
+  - **Add to Portfolio CTA:** Primary action button
+- **Styling:**
+  - Search: Large input with glassmorphic styling
+  - Table: Glassmorphic background with hover states
+  - Modal: Full glassmorphic overlay with blur backdrop
+
+### Component: Portfolio Management
+- **Description:** Manage portfolio holdings with add/edit/delete functionality
+- **Layout:** Table view with action buttons and add/edit modals
+- **Elements:**
+  - **Holdings Table:** Current portfolio with performance metrics
+  - **Add Investment Modal:** Form to add new holdings
+  - **Edit Modal:** Update existing holdings
+  - **Performance Summary:** Portfolio-level metrics
+- **Styling:**
+  - Table: Responsive with glassmorphic styling
+  - Modals: Glassmorphic with smooth animations
+  - Forms: Clear inputs with proper validation styling
+
+### Component: AI Chat Widget
+- **Description:** Floating chat interface for multi-agent AI system
+- **Layout:** Fixed position floating widget with expandable chat interface
+- **Elements:**
+  - **Chat Toggle:** Floating action button
+  - **Chat Interface:** Expandable chat window
+  - **Message Bubbles:** Distinct styling for user/AI messages
+  - **Agent Indicators:** Visual indication of which AI agent is responding
+- **Styling:**
+  - Widget: Fixed positioning with glassmorphic styling
+  - Messages: Alternating alignment with appropriate colors
+  - Animation: Smooth expand/collapse transitions
+
+### Component: Admin Dashboard
+- **Description:** Administrative overview with system metrics and user analytics
+- **Layout:** Grid of metric cards with charts and quick actions
+- **Elements:**
+  - **System Health Cards:** API status, database, cache metrics
+  - **User Analytics:** Registration trends, active users
+  - **Quick Actions:** System management buttons
+  - **Activity Log:** Recent system events
+- **Styling:**
+  - Cards: Glassmorphic with status-appropriate colors
+  - Charts: Admin-themed with professional color palette
+  - Status indicators: Green/yellow/red color coding
+
+### Component: User Management (Admin)
+- **Description:** Administrative interface for managing user accounts
+- **Layout:** Search/filter header with user table and edit modals
+- **Elements:**
+  - **Search and Filters:** Find users by various criteria
+  - **User Table:** Comprehensive user information display
+  - **Edit User Modal:** Administrative user editing interface
+  - **Bulk Actions:** Multi-select user operations
+- **Styling:**
+  - Table: Professional styling with clear data hierarchy
+  - Filters: Grouped filter controls
+  - Actions: Admin-appropriate button styling
+
+---
+
+## 5. Interactive States & Animations
+
+### Button States
+- **Default:** Base styling with proper contrast
+- **Hover:** Scale: 1.02, brightness increase
+- **Active:** Scale: 0.98, brightness decrease
+- **Focus:** Outline ring for accessibility
+- **Loading:** Spinner animation with reduced opacity
+- **Disabled:** 50% opacity, no pointer events
+
+### Card Interactions
+- **Hover:** Subtle elevation increase, brightness increase
+- **Focus:** Keyboard navigation outline
+- **Active:** Slight scale decrease for tactile feedback
+
+### Form Interactions
+- **Input Focus:** Border color change, scale increase
+- **Validation:** Color-coded borders and helper text
+- **Success:** Green border and checkmark
+- **Error:** Red border and error message
+
+### Animations
+- **Page Transitions:** Smooth fade-in/fade-out
+- **Modal Animations:** Scale and fade entrance/exit
+- **Loading States:** Skeleton loaders and spinners
+- **Chart Animations:** Smooth data transitions
+- **Background Effects:** Subtle animated gradients
+
+---
+
+## 6. Responsive Design Breakpoints
+
+### Mobile First Approach
+- **xs:** 0px - 475px (Mobile)
+- **sm:** 476px - 639px (Large Mobile)
+- **md:** 640px - 767px (Tablet)
+- **lg:** 768px - 1023px (Large Tablet)
+- **xl:** 1024px - 1279px (Desktop)
+- **2xl:** 1280px+ (Large Desktop)
+
+### Layout Adaptations
+- **Mobile:** Single column, stacked navigation, touch-optimized buttons
+- **Tablet:** Two-column grids, expanded navigation
+- **Desktop:** Multi-column layouts, sidebar navigation, hover states
+
+---
+
+## 7. Accessibility Guidelines
+
+### Color Contrast
+- **Text on Background:** Minimum 4.5:1 ratio (WCAG AA)
+- **Interactive Elements:** Minimum 3:1 ratio
+- **Focus Indicators:** High contrast, 2px minimum
+
+### Keyboard Navigation
+- **Tab Order:** Logical flow through interactive elements
+- **Focus Indicators:** Visible focus rings on all interactive elements
+- **Keyboard Shortcuts:** Common shortcuts for power users
+
+### Screen Readers
+- **Semantic HTML:** Proper heading hierarchy and landmarks
+- **Alt Text:** Descriptive text for all images and icons
+- **ARIA Labels:** Proper labeling for complex interactions
+
+---
+
+## 8. Asset Manifest
+
+### Icons
+- **Navigation Icons:** Home, Dashboard, Portfolio, Research, Notifications, Settings
+- **Status Icons:** Success checkmark, warning triangle, error X, info circle
+- **Financial Icons:** Trending up/down, dollar sign, chart variations
+- **UI Icons:** Search, filter, sort, edit, delete, add, menu, close
+
+### Images
+- **Hero Background:** Abstract geometric shapes or particles (SVG/CSS)
+- **Feature Illustrations:** Simple line art representing key features
+- **Avatar Placeholders:** Default user avatar images
+- **Chart Backgrounds:** Subtle grid patterns for chart overlays
+
+### Fonts
+- **Primary Font:** Inter (weights: 300, 400, 500, 600, 700, 800)
+- **Fallback Fonts:** -apple-system, BlinkMacSystemFont, sans-serif
+
+---
+
+## 9. Implementation Notes
+
+### Performance Considerations
+- **Lazy Loading:** Implement for non-critical components
+- **Image Optimization:** WebP format with fallbacks
+- **Bundle Splitting:** Route-based code splitting
+- **Glassmorphic Effects:** Use CSS instead of heavy JS libraries
+
+### Browser Support
+- **Modern Browsers:** Chrome 90+, Firefox 88+, Safari 14+, Edge 90+
+- **Fallbacks:** Graceful degradation for older browsers
+- **Progressive Enhancement:** Core functionality works without advanced features
+
+### Development Guidelines
+- **Component Library:** Build reusable components with TypeScript interfaces
+- **Styling:** Use Tailwind utility classes with custom CSS for complex effects
+- **State Management:** Context API for global state, local state for components
+- **Testing:** Unit tests for components, integration tests for user flows

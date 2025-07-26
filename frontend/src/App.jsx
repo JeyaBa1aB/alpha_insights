@@ -12,6 +12,7 @@ import NotificationsCenter from './pages/NotificationsCenter';
 import EducationHub from './pages/EducationHub';
 import ProfileSettings from './pages/ProfileSettings';
 import AdminDashboard from './admin/AdminDashboard';
+import UserManagement from './admin/UserManagement';
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
             <Route path="/notifications" element={<NotificationsCenter />} />
             <Route path="/settings" element={<ProfileSettings />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<UserManagement />} />
           </Route>
         </Routes>
       </main>

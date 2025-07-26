@@ -1,5 +1,6 @@
 // src/admin/AdminDashboard.tsx
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../utils/api';
 import { getToken } from '../utils/auth';
 
@@ -208,9 +209,12 @@ const AdminDashboard: React.FC = () => {
             <h3 className="text-xl font-semibold mb-4">Quick Actions</h3>
             
             <div className="space-y-3">
-              <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors">
+              <Link 
+                to="/admin/users"
+                className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors text-center"
+              >
                 View User Management
-              </button>
+              </Link>
               <button className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors">
                 System Settings
               </button>

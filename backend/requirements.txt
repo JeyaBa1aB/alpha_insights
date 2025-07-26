@@ -6,3 +6,10 @@ flask-cors
 werkzeug
 pyjwt
 psutil
+requests
+python-dotenv
+polygon-api-client
+finnhub-python
+google-generativeai
+autogen
+schedule

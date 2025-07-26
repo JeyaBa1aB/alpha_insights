@@ -73,12 +73,12 @@
   - [x] 5.6 Implement Floating AI Chat Widget
 
 - [ ] 6.0 Integrate APIs, real-time data, and AI agents
-  - [ ] 6.1 Set up Polygon.io and Finnhub API integration in backend
-  - [ ] 6.2 Connect frontend to backend API endpoints
-  - [ ] 6.3 Implement WebSocket client for notifications
-  - [ ] 6.4 Integrate Gemini-1.5-Flash AI and Microsoft AutoGen multi-agent framework
-  - [ ] 6.5 Enable agent memory and conversation history in MongoDB
-  - [ ] 6.6 Ensure context-aware responses and seamless agent handoff
+  - [x] 6.1 Set up Polygon.io and Finnhub API integration in backend
+  - [x] 6.2 Connect frontend to backend API endpoints
+  - [x] 6.3 Implement WebSocket client for notifications
+  - [x] 6.4 Integrate Gemini-1.5-Flash AI and Microsoft AutoGen multi-agent framework
+  - [x] 6.5 Enable agent memory and conversation history in MongoDB
+  - [x] 6.6 Ensure context-aware responses and seamless agent handoff
 
 - [ ] 7.0 Write unit tests and validate core flows
   - [ ] 7.1 Write unit tests for key pages and components (LandingPage, Dashboard, PortfolioPage, AIChatWidget, AdminDashboard)
