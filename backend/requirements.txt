@@ -1,0 +1,8 @@
+flask
+pymongo
+redis
+flask-socketio
+flask-cors
+werkzeug
+pyjwt
+psutil

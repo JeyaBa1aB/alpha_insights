@@ -1,0 +1,140 @@
+# Rules for Generating a `design.mdc` Blueprint
+
+This document outlines the standard operating procedure for creating a `design.mdc` file. The purpose of this file is to serve as a comprehensive, structured blueprint for GitHub Copilot to generate a high-quality, fully-functional landing page based on provided design assets.
+
+---
+
+## **Phase 1: Input & Analysis**
+
+My first step is always to gather and understand the necessary inputs.
+
+### 1.1. Required Inputs:
+I will always ask for the following two items at the start of the process:
+
+1.  **Prototype Image:** A visual representation (screenshot, mockup) of the landing page. This is the primary source of truth for layout, structure, and component appearance.
+2.  **`design.json` File:** A file containing the core design tokens. This should ideally include:
+    * `colors`: Primary, secondary, accent, text, background, etc.
+    * `typography`: Font families, sizes, weights, and line heights for different elements (headings, body, etc.).
+    * `spacing`: A scale for margins, padding, and gaps (e.g., sm, md, lg, xl).
+    * `borderRadius`: Values for corner rounding.
+    * `shadows`: Definitions for element elevation.
+
+### 1.2. Clarification & Questioning:
+* If a `design.json` file is not provided, I will ask a series of targeted questions to establish the design tokens myself.
+* I will analyze the prototype image to identify all unique components and layout sections.
+* I will ask clarifying questions about any ambiguities, such as:
+    * Interactive states (hover, focus, active for buttons and links).
+    * Specific animations or transitions.
+
+---
+
+## **Phase 1.5: Guiding UI/UX Principles**
+
+Before generating the `design.mdc`, I will apply these core principles to ensure the resulting design is effective, user-friendly, and professional.
+
+* **Clarity and Simplicity:** The primary goal is to create an interface that is self-evident. I will prioritize clear language, logical structure, and avoid unnecessary complexity or visual clutter. Every element must have a clear purpose.
+
+* **Visual Hierarchy:** I will structure the page to guide the user's attention to the most important elements first. This will be achieved through strategic use of size, color, contrast, and placement (e.g., the main call-to-action will be visually prominent).
+
+* **Layout Integrity:** The layout must be clean and organized. Elements will have proper spacing and alignment to prevent them from overlapping, ensuring a polished and professional appearance.
+
+* **Consistency:** The design will be internally consistent. Buttons, forms, icons, and typographic styles will be applied uniformly across all sections of the page to create a predictable and learnable user experience.
+
+* **Feedback and Interaction:** The UI will provide immediate and clear feedback in response to user actions. For example, buttons will have distinct hover and active states, and form submissions will result in clear success or error messages.
+
+* **Accessibility (A11y):** I will design with all users in mind. This includes ensuring sufficient color contrast (WCAG AA standards), providing descriptive alt text for images, and ensuring the layout is navigable via keyboard.
+
+* **Strategic Use of Whitespace:** I will use negative space (whitespace) deliberately to group related items, separate unrelated ones, and improve overall readability and focus. This prevents the layout from feeling cramped.
+
+---
+
+## **Phase 2: `design.mdc` Generation**
+
+Once I have all the necessary information, I will generate the `design.mdc` file using the following strict structure.
+
+### **`design.mdc` Structure Template**
+
+```markdown
+# Design Document: [Page Name]
+
+## 1. Project Overview
+- **Page:** [e.g., SaaS Product Landing Page]
+- **Description:** [A brief, one-sentence description of the page's purpose.]
+- **Target Tech Stack:** [e.g., React, TypeScript, Tailwind CSS]
+
+---
+
+## 2. Design Tokens
+*(This section is populated directly from the design.json or user answers.)*
+
+### Colors
+- `primary`: [HEX/RGB value]
+- `secondary`: [HEX/RGB value]
+- `background`: [HEX/RGB value]
+- `text-primary`: [HEX/RGB value]
+- `accent`: [HEX/RGB value]
+
+### Typography
+- **Font Family:** [e.g., 'Inter', sans-serif]
+- **Base Font Size:** [e.g., 16px]
+- **Headings:**
+  - `h1`: [Size, Weight]
+  - `h2`: [Size, Weight]
+  - `p`: [Size, Weight]
+
+### Spacing
+- `sm`: [e.g., 8px]
+- `md`: [e.g., 16px]
+- `lg`: [e.g., 32px]
+
+---
+
+## 3. Page Layout & Structure
+*(A high-level description of the page's structure.)*
+
+- **Overall Layout:** [e.g., A single-column layout with a sticky navigation header.]
+- **Page Sections (in order):**
+  - Navbar
+  - Hero Section
+  - Features Section
+  - Testimonials
+  - Call to Action (CTA)
+  - Footer
+
+---
+
+## 4. Component Breakdown
+*(A detailed breakdown of each component identified in the layout.)*
+
+### Component: [Component Name, e.g., Hero Section]
+- **Description:** [What this component is and its goal.]
+- **Layout:** [How its internal elements are arranged, e.g., "A two-column grid on desktop."]
+- **Elements:**
+  - **Heading (h1):**
+    - **Content:** "Text from prototype"
+    - **Styling:** Uses `text-primary` color, `h1` typography.
+  - **Paragraph (p):**
+    - **Content:** "Subheading text from prototype."
+    - **Styling:** Uses `text-secondary` color, `p` typography.
+  - **Button (Primary CTA):**
+    - **Content:** "Get Started"
+    - **Styling:** Uses `primary` background, white text.
+    - **Interactivity:** On hover, background lightens by 10%. On click, it performs [action].
+  - **Image:**
+    - **Source:** `[path/to/image.png]`
+    - **Styling:** Has a soft shadow (`shadow-lg`).
+
+*(This block is repeated for every component on the page.)*
+
+---
+
+## 5. Asset Manifest
+*(A list of all static assets required to build the page.)*
+
+- **Images:**
+  - `/assets/images/hero-image.png`
+  - `/assets/images/testimonial-avatar-1.jpg`
+- **Icons:**
+  - `icon-feature-1.svg`
+- **Fonts:**
+  - Google Fonts: 'Inter' (weights 400, 600, 700)
