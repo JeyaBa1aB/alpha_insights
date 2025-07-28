@@ -4,7 +4,7 @@
 import { io, Socket } from 'socket.io-client';
 import { getToken } from './auth';
 
-export interface Notification {
+export interface AppNotification {
   type: 'price_alert' | 'portfolio_update' | 'system' | 'market_update';
   level?: 'info' | 'warning' | 'error' | 'success';
   message?: string;
@@ -12,7 +12,7 @@ export interface Notification {
   timestamp: string;
 }
 
-export interface PriceAlertNotification extends Notification {
+export interface PriceAlertNotification extends AppNotification {
   type: 'price_alert';
   alert_id: string;
   symbol: string;
@@ -21,7 +21,7 @@ export interface PriceAlertNotification extends Notification {
   current_price: number;
 }
 
-export interface MarketUpdateNotification extends Notification {
+export interface MarketUpdateNotification extends AppNotification {
   type: 'market_update';
   data: {
     symbol?: string;
@@ -38,7 +38,7 @@ class WebSocketClient {
   private listeners: Map<string, Set<Function>> = new Map();
   private isConnected = false;
 
-  constructor(private url: string = 'http://localhost:5003') {}
+  constructor(private url: string = 'http://localhost:5000') {}
 
   connect(userId?: string): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -78,7 +78,7 @@ class WebSocketClient {
         });
 
         // Handle incoming notifications
-        this.socket.on('notification', (notification: Notification) => {
+        this.socket.on('notification', (notification: AppNotification) => {
           this.emit('notification', notification);
         });
 
@@ -190,12 +190,12 @@ class WebSocketClient {
   }
 
   // Utility methods for common notification patterns
-  onNotification(callback: (notification: Notification) => void): void {
+  onNotification(callback: (notification: AppNotification) => void): void {
     this.on('notification', callback);
   }
 
   onPriceAlert(callback: (alert: PriceAlertNotification) => void): void {
-    this.on('notification', (notification: Notification) => {
+    this.on('notification', (notification: AppNotification) => {
       if (notification.type === 'price_alert') {
         callback(notification as PriceAlertNotification);
       }

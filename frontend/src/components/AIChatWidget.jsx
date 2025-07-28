@@ -26,14 +26,14 @@ const AIChatWidget = () => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    const userMessage: Message = {
+    const userMessage = {
       sender: 'user',
       text: input,
       timestamp: new Date().toISOString()
     };
 
     // Add user message and loading indicator
-    const loadingMessage: Message = {
+    const loadingMessage = {
       sender: 'ai',
       text: 'Thinking...',
       loading: true,
@@ -63,9 +63,9 @@ const AIChatWidget = () => {
         const response = await aiChatService.sendMessage(input, enhancedContext);
 
       if (response.success && response.data) {
-        const aiResponse: AIResponse = response.data;
+        const aiResponse = response.data;
         
-        const aiMessage: Message = {
+        const aiMessage = {
           sender: 'ai',
           text: aiResponse.response,
           agent: aiResponse.agent_name || aiResponse.agent,
@@ -103,7 +103,7 @@ const AIChatWidget = () => {
         }
       } else {
         // Handle error response
-        const errorMessage: Message = {
+        const errorMessage = {
           sender: 'ai',
           text: response.error || 'I apologize, but I\'m experiencing technical difficulties. Please try again.',
           agent: 'System',
@@ -119,7 +119,7 @@ const AIChatWidget = () => {
     } catch (error) {
       console.error('AI Chat error:', error);
       
-      const errorMessage: Message = {
+      const errorMessage = {
         sender: 'ai',
         text: 'I\'m sorry, I\'m having trouble connecting right now. Please check your connection and try again.',
         agent: 'System',
@@ -198,13 +198,15 @@ const AIChatWidget = () => {
               {messages.map((msg, idx) => (
                 <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[85%] ${msg.sender === 'user' ? 'order-1' : 'order-2'}`}>
-                    {/* Agent badge for AI messages */}
+                    {/* Enhanced Agent badge for AI messages */}
                     {msg.sender === 'ai' && msg.agent && (
                       <div className="flex items-center gap-2 mb-1">
-                        <div className="w-6 h-6 bg-gradient-primary rounded-full flex items-center justify-center">
-                          <span className="text-xs text-white font-bold">AI</span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 bg-indigo-500 rounded-full flex items-center justify-center">
+                            <span className="text-xs text-white font-bold">🤖</span>
+                          </div>
+                          <span className="text-xs font-semibold text-indigo-400">{msg.agent}</span>
                         </div>
-                        <span className="text-xs text-gray-400">{msg.agent}</span>
                         {msg.confidence && (
                           <span className="text-xs text-gray-500">
                             ({Math.round(msg.confidence * 100)}%)
@@ -292,8 +294,8 @@ const AIChatWidget = () => {
                   'Analyze my portfolio',
                   'Research AAPL',
                   'Set price alert',
-                  'Market overview',
-                  'Help me get started'
+                  'Where can I find my dashboard?',
+                  'Suggest a good dividend stock'
                 ].map((suggestion, idx) => (
                   <button
                     key={idx}

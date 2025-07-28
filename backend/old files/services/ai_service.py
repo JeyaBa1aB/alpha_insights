@@ -256,6 +256,13 @@ class AIService:
                 logger.info("Gemini-1.5-Flash initialized successfully")
             except Exception as e:
                 logger.error(f"Failed to initialize Gemini: {e}")
+                self.model = None
+        else:
+            if not self.gemini_api_key:
+                logger.error("GEMINI_API_KEY not found in environment variables")
+            if not genai:
+                logger.error("google.generativeai module not available")
+            self.model = None
         
         # Initialize AutoGen group chat (if available)
         self.autogen_manager = None
@@ -623,6 +630,120 @@ class AIService:
     
     def _process_routing_decision(self, routing_response: str, user_message: str, user_context: Dict) -> Dict[str, Any]:
         """Process and validate routing decision"""
+        try:
+            # Try to parse JSON response
+            import json
+            try:
+                routing_data = json.loads(routing_response)
+            except json.JSONDecodeError:
+                # If JSON parsing fails, extract agent name from text
+                routing_data = self._extract_routing_from_text(routing_response)
+            
+            agent_name = routing_data.get('agent', 'master')
+            
+            # Handle multi-agent responses (when agent is a list)
+            if isinstance(agent_name, list):
+                return self._handle_multi_agent_query(user_message, user_context, agent_name)
+            
+            # Handle master agent direct response
+            if agent_name == 'master' or routing_data.get('response'):
+                return {
+                    'agent': 'master',
+                    'agent_name': 'Master Agent',
+                    'response': routing_data.get('response', routing_response),
+                    'confidence': routing_data.get('confidence', 0.8),
+                    'reasoning': routing_data.get('reasoning', 'Direct response from master agent')
+                }
+            
+            # Route to specialist agent
+            if agent_name in self.agents:
+                return self._get_agent_response(agent_name, user_message, user_context)
+            else:
+                return self._fallback_response(f"Unknown agent: {agent_name}")
+                
+        except Exception as e:
+            logger.error(f"Routing decision processing error: {e}")
+            return self._fallback_response("Failed to process routing decision")
+    
+    def _extract_routing_from_text(self, text: str) -> Dict[str, Any]:
+        """Extract routing information from non-JSON text"""
+        text_lower = text.lower()
+        
+        # Simple keyword-based routing fallback
+        if any(word in text_lower for word in ['portfolio', 'allocation', 'diversification']):
+            return {'agent': 'portfolio', 'confidence': 0.7}
+        elif any(word in text_lower for word in ['stock', 'analysis', 'research', 'company']):
+            return {'agent': 'research', 'confidence': 0.7}
+        elif any(word in text_lower for word in ['learn', 'explain', 'education', 'what is']):
+            return {'agent': 'education', 'confidence': 0.7}
+        elif any(word in text_lower for word in ['help', 'how to', 'support', 'navigate']):
+            return {'agent': 'support', 'confidence': 0.7}
+        elif any(word in text_lower for word in ['alert', 'notify', 'monitor']):
+            return {'agent': 'alerts', 'confidence': 0.7}
+        else:
+            return {'agent': 'master', 'response': text, 'confidence': 0.5}
+    
+    def _get_agent_response(self, agent_name: str, user_message: str, user_context: Dict = None) -> Dict[str, Any]:
+        """Get response from specific agent"""
+        try:
+            if agent_name not in self.agents:
+                return self._fallback_response(f"Agent {agent_name} not found")
+            
+            agent = self.agents[agent_name]
+            user_id = user_context.get('user_id') if user_context else None
+            
+            # Build agent context
+            context = agent.get_context(user_id)
+            context += f"\nUser query: {user_message}\n"
+            
+            if user_context:
+                context += f"\nUser context: {json.dumps(user_context, default=str)}\n"
+            
+            # Add specific instructions based on agent type
+            if agent_name == 'research':
+                context += "\nProvide a concise, data-driven analysis focusing on key financial metrics. Be professional and direct."
+            elif agent_name == 'portfolio':
+                context += "\nProvide actionable portfolio strategies in bullet points. Be specific and professional."
+            elif agent_name == 'education':
+                context += "\nProvide a clear, textbook-style explanation with definitions and formulas where applicable."
+            elif agent_name == 'support':
+                context += "\nProvide step-by-step instructions. Be direct and procedural."
+            
+            context += "\nRespond professionally and concisely."
+            
+            # Generate response
+            response = self._generate_response(context)
+            
+            if not response:
+                return self._fallback_response("Failed to generate response")
+            
+            # Store conversation in agent memory
+            agent.add_to_history(user_message, response, user_id, user_context, 0.8)
+            
+            return {
+                'agent': agent_name,
+                'agent_name': agent.name,
+                'response': response,
+                'confidence': 0.8,
+                'reasoning': f'Response generated by {agent.name}'
+            }
+            
+        except Exception as e:
+            logger.error(f"Agent response error for {agent_name}: {e}")
+            return self._fallback_response(f"Error generating response from {agent_name}")
+    
+    def _fallback_response(self, error_message: str) -> Dict[str, Any]:
+        """Generate fallback response for errors"""
+        return {
+            'agent': 'master',
+            'agent_name': 'Master Agent',
+            'response': "I apologize, but I'm experiencing technical difficulties. Please try rephrasing your question or contact support if the issue persists.",
+            'confidence': 0.3,
+            'reasoning': f'Fallback response due to: {error_message}'
+        }
+
+# Global AI service instance
+ai_service = AIService()n"""
         try:
             # Try to parse JSON response
             routing_data = json.loads(routing_response)
@@ -1161,4 +1282,214 @@ class AIService:
         return health
 
 # Global instance
-ai_service = AIService() 
+ai_service = AIService() n""
+"
+        try:
+            # Try to parse JSON response
+            import json
+            try:
+                routing_data = json.loads(routing_response)
+            except json.JSONDecodeError:
+                # If JSON parsing fails, extract agent name from text
+                routing_data = self._extract_routing_from_text(routing_response)
+            
+            agent_name = routing_data.get('agent', 'master')
+            
+            # Handle multi-agent responses (when agent is a list)
+            if isinstance(agent_name, list):
+                return self._handle_multi_agent_query(user_message, user_context, agent_name)
+            
+            # Handle master agent direct response
+            if agent_name == 'master' or routing_data.get('response'):
+                return {
+                    'agent': 'master',
+                    'agent_name': 'Master Agent',
+                    'response': routing_data.get('response', routing_response),
+                    'confidence': routing_data.get('confidence', 0.8),
+                    'reasoning': routing_data.get('reasoning', 'Direct response from master agent')
+                }
+            
+            # Route to specialist agent
+            if agent_name in self.agents:
+                return self._get_agent_response(agent_name, user_message, user_context)
+            else:
+                return self._fallback_response(f"Unknown agent: {agent_name}")
+                
+        except Exception as e:
+            logger.error(f"Routing decision processing error: {e}")
+            return self._fallback_response("Failed to process routing decision")
+    
+    def _extract_routing_from_text(self, text: str) -> Dict[str, Any]:
+        """Extract routing information from non-JSON text"""
+        text_lower = text.lower()
+        
+        # Simple keyword-based routing fallback
+        if any(word in text_lower for word in ['portfolio', 'allocation', 'diversification']):
+            return {'agent': 'portfolio', 'confidence': 0.7}
+        elif any(word in text_lower for word in ['stock', 'analysis', 'research', 'company']):
+            return {'agent': 'research', 'confidence': 0.7}
+        elif any(word in text_lower for word in ['learn', 'explain', 'education', 'what is']):
+            return {'agent': 'education', 'confidence': 0.7}
+        elif any(word in text_lower for word in ['help', 'how to', 'support', 'navigate']):
+            return {'agent': 'support', 'confidence': 0.7}
+        elif any(word in text_lower for word in ['alert', 'notify', 'monitor']):
+            return {'agent': 'alerts', 'confidence': 0.7}
+        else:
+            return {'agent': 'master', 'response': text, 'confidence': 0.5}
+    
+    def _get_agent_response(self, agent_name: str, user_message: str, user_context: Dict = None) -> Dict[str, Any]:
+        """Get response from specific agent"""
+        try:
+            if agent_name not in self.agents:
+                return self._fallback_response(f"Agent {agent_name} not found")
+            
+            agent = self.agents[agent_name]
+            user_id = user_context.get('user_id') if user_context else None
+            
+            # Build agent context
+            context = agent.get_context(user_id)
+            context += f"\nUser query: {user_message}\n"
+            
+            if user_context:
+                context += f"\nUser context: {json.dumps(user_context, default=str)}\n"
+            
+            # Add specific instructions based on agent type
+            if agent_name == 'research':
+                context += "\nProvide a concise, data-driven analysis focusing on key financial metrics. Be professional and direct."
+            elif agent_name == 'portfolio':
+                context += "\nProvide actionable portfolio strategies in bullet points. Be specific and professional."
+            elif agent_name == 'education':
+                context += "\nProvide a clear, textbook-style explanation with definitions and formulas where applicable."
+            elif agent_name == 'support':
+                context += "\nProvide step-by-step instructions. Be direct and procedural."
+            
+            context += "\nRespond professionally and concisely."
+            
+            # Generate response
+            response = self._generate_response(context)
+            
+            if not response:
+                return self._fallback_response("Failed to generate response")
+            
+            # Store conversation in agent memory
+            agent.add_to_history(user_message, response, user_id, user_context, 0.8)
+            
+            return {
+                'agent': agent_name,
+                'agent_name': agent.name,
+                'response': response,
+                'confidence': 0.8,
+                'reasoning': f'Response generated by {agent.name}'
+            }
+            
+        except Exception as e:
+            logger.error(f"Agent response error for {agent_name}: {e}")
+            return self._fallback_response(f"Error generating response from {agent_name}")
+    
+    def _fallback_response(self, error_message: str) -> Dict[str, Any]:
+        """Generate fallback response for errors"""
+        return {
+            'agent': 'master',
+            'agent_name': 'Master Agent',
+            'response': "I apologize, but I'm experiencing technical difficulties. Please try rephrasing your question or contact support if the issue persists.",
+            'confidence': 0.3,
+            'reasoning': f'Fallback response due to: {error_message}'
+        }
+
+    # Additional utility methods for conversation management
+    def get_conversation_history(self, agent_name: str = None) -> List[Dict[str, Any]]:
+        """Get conversation history for specific agent or all agents"""
+        try:
+            if self.db is None:
+                return []
+            
+            query = {}
+            if agent_name and agent_name in self.agents:
+                agent = self.agents[agent_name]
+                query['agent_id'] = agent.agent_id
+            
+            conversations = self.db.agent_conversations.find(query).sort('timestamp', -1).limit(100)
+            
+            history = []
+            for conv in conversations:
+                history.append({
+                    'timestamp': conv['timestamp'].isoformat() if hasattr(conv['timestamp'], 'isoformat') else conv['timestamp'],
+                    'agent_name': conv['agent_name'],
+                    'user_message': conv['user_message'],
+                    'agent_response': conv['agent_response'],
+                    'confidence': conv.get('confidence', 0.5)
+                })
+            
+            return history
+            
+        except Exception as e:
+            logger.error(f"Failed to get conversation history: {e}")
+            return []
+    
+    def clear_conversation_history(self, agent_name: str = None):
+        """Clear conversation history for specific agent or all agents"""
+        try:
+            if self.db is None:
+                return
+            
+            if agent_name and agent_name in self.agents:
+                agent = self.agents[agent_name]
+                self.db.agent_conversations.delete_many({'agent_id': agent.agent_id})
+                agent.conversation_history = []
+            else:
+                self.db.agent_conversations.delete_many({})
+                for agent in self.agents.values():
+                    agent.conversation_history = []
+                    
+        except Exception as e:
+            logger.error(f"Failed to clear conversation history: {e}")
+    
+    def get_user_conversation_analytics(self, user_id: str) -> Dict[str, Any]:
+        """Get analytics for user's conversation patterns"""
+        try:
+            if self.db is None:
+                return {}
+            
+            # Get user's conversations
+            conversations = list(self.db.agent_conversations.find({'user_id': user_id}))
+            
+            if not conversations:
+                return {
+                    'user_id': user_id,
+                    'total_conversations': 0,
+                    'agent_interactions': [],
+                    'expertise_levels': {},
+                    'generated_at': datetime.now().isoformat()
+                }
+            
+            # Analyze agent interactions
+            agent_counts = {}
+            for conv in conversations:
+                agent_name = conv.get('agent_name', 'Unknown')
+                agent_counts[agent_name] = agent_counts.get(agent_name, 0) + 1
+            
+            # Get expertise levels
+            expertise_levels = {}
+            for agent in self.agents.values():
+                memory_doc = self.db.agent_memory.find_one({'agent_id': agent.agent_id})
+                if memory_doc and 'memory' in memory_doc:
+                    for topic, data in memory_doc['memory'].items():
+                        expertise_levels[topic] = data.get('user_expertise_level', 'beginner')
+            
+            return {
+                'user_id': user_id,
+                'total_conversations': len(conversations),
+                'agent_interactions': [
+                    {'agent': agent, 'count': count} 
+                    for agent, count in agent_counts.items()
+                ],
+                'expertise_levels': expertise_levels,
+                'generated_at': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to get user analytics: {e}")
+            return {}
+
+# Global AI service instance
+ai_service = AIService()

@@ -13,3 +13,5 @@ finnhub-python
 google-generativeai
 autogen
 schedule
+numpy
+pandas

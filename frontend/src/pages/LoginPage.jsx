@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../utils/api';
 
-const LoginPage: React.FC = () => {
+const LoginPage = () => {
   const { login, user } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -18,7 +18,7 @@ const LoginPage: React.FC = () => {
     }
   }, [user, navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     try {

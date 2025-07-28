@@ -3,35 +3,18 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import { getToken } from '../utils/auth';
 
-interface User {
-  _id: string;
-  username: string;
-  email: string;
-  role: 'user' | 'admin';
-  createdAt: string;
-  lastLogin?: string;
-  isActive: boolean;
-}
-
-interface EditUserData {
-  username: string;
-  email: string;
-  role: 'user' | 'admin';
-  isActive: boolean;
-}
-
-const UserManagement: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+const UserManagement = () => {
+  const [users, setUsers] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'user' | 'admin'>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
-  const [sortBy, setSortBy] = useState<'username' | 'email' | 'createdAt' | 'role'>('createdAt');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [editFormData, setEditFormData] = useState<EditUserData>({
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [editingUser, setEditingUser] = useState(null);
+  const [editFormData, setEditFormData] = useState({
     username: '',
     email: '',
     role: 'user',
@@ -56,7 +39,7 @@ const UserManagement: React.FC = () => {
         setUsers(data.users || []);
       } else {
         // Mock data for development
-        const mockUsers: User[] = [
+        const mockUsers = [
           {
             _id: '1',
             username: 'john_doe',
@@ -118,8 +101,8 @@ const UserManagement: React.FC = () => {
 
     // Sort users
     filtered.sort((a, b) => {
-      let aValue: string | Date = a[sortBy];
-      let bValue: string | Date = b[sortBy];
+      let aValue = a[sortBy];
+      let bValue = b[sortBy];
       
       if (sortBy === 'createdAt') {
         aValue = new Date(a.createdAt);
@@ -134,7 +117,7 @@ const UserManagement: React.FC = () => {
     setFilteredUsers(filtered);
   };
 
-  const handleEditUser = (user: User) => {
+  const handleEditUser = (user) => {
     setEditingUser(user);
     setEditFormData({
       username: user.username,
@@ -167,7 +150,7 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const handleDeleteUser = async (userId: string) => {
+  const handleDeleteUser = async (userId) => {
     if (!confirm('Are you sure you want to delete this user?')) return;
     
     try {
@@ -184,7 +167,7 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -237,7 +220,7 @@ const UserManagement: React.FC = () => {
               <label className="block text-sm font-medium text-gray-400 mb-2">Role</label>
               <select
                 value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value as 'all' | 'user' | 'admin')}
+                onChange={(e) => setRoleFilter(e.target.value)}
                 className="w-full p-3 rounded-lg bg-slate-700 border border-slate-600 text-white focus:border-indigo-500 focus:outline-none"
               >
                 <option value="all">All Roles</option>
@@ -251,7 +234,7 @@ const UserManagement: React.FC = () => {
               <label className="block text-sm font-medium text-gray-400 mb-2">Status</label>
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+                onChange={(e) => setStatusFilter(e.target.value)}
                 className="w-full p-3 rounded-lg bg-slate-700 border border-slate-600 text-white focus:border-indigo-500 focus:outline-none"
               >
                 <option value="all">All Status</option>
@@ -266,7 +249,7 @@ const UserManagement: React.FC = () => {
               <div className="flex gap-2">
                 <select
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as 'username' | 'email' | 'createdAt' | 'role')}
+                  onChange={(e) => setSortBy(e.target.value)}
                   className="flex-1 p-3 rounded-lg bg-slate-700 border border-slate-600 text-white focus:border-indigo-500 focus:outline-none"
                 >
                   <option value="createdAt">Created</option>
@@ -398,7 +381,7 @@ const UserManagement: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-400 mb-2">Role</label>
                 <select
                   value={editFormData.role}
-                  onChange={(e) => setEditFormData({...editFormData, role: e.target.value as 'user' | 'admin'})}
+                  onChange={(e) => setEditFormData({...editFormData, role: e.target.value})}
                   className="w-full p-3 rounded-lg bg-slate-700 border border-slate-600 text-white focus:border-indigo-500 focus:outline-none"
                 >
                   <option value="user">User</option>

@@ -1,24 +1,12 @@
 // src/context/AuthContext.tsx
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { saveToken, getToken, removeToken, decodeToken } from '../utils/auth';
 
-interface User {
-  username: string;
-  role: string;
-}
+const AuthContext = createContext(undefined);
 
-interface AuthContextType {
-  user: User | null;
-  token: string | null;
-  login: (token: string) => void;
-  logout: () => void;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [token, setToken] = useState<string | null>(getToken());
-  const [user, setUser] = useState<User | null>(null);
+export const AuthProvider = ({ children }) => {
+  const [token, setToken] = useState(getToken());
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     if (token) {
@@ -33,7 +21,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [token]);
 
-  const login = (newToken: string) => {
+  const login = (newToken) => {
     saveToken(newToken);
     setToken(newToken);
   };

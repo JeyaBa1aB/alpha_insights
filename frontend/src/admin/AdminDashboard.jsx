@@ -4,19 +4,8 @@ import { Link } from 'react-router-dom';
 import { api } from '../utils/api';
 import { getToken } from '../utils/auth';
 
-interface SystemStats {
-  totalUsers: number;
-  activeUsers: number;
-  totalPortfolios: number;
-  systemUptime: string;
-  memoryUsage: number;
-  cpuUsage: number;
-  apiCallsToday: number;
-  errorRate: number;
-}
-
-const AdminDashboard: React.FC = () => {
-  const [stats, setStats] = useState<SystemStats>({
+const AdminDashboard = () => {
+  const [stats, setStats] = useState({
     totalUsers: 0,
     activeUsers: 0,
     totalPortfolios: 0,

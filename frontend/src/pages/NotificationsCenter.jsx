@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import GlassmorphicCard from '../components/GlassmorphicCard';
 import GradientButton from '../components/GradientButton';
-import { getWebSocketClient, Notification, PriceAlertNotification } from '../utils/websocket';
+import { getWebSocketClient } from '../utils/websocket';
 import { notificationsService } from '../utils/api';
 import { getToken } from '../utils/auth';
 
 export default function NotificationsCenter() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [alerts, setAlerts] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState([]);
+  const [alerts, setAlerts] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -39,17 +39,17 @@ export default function NotificationsCenter() {
       const wsClient = getWebSocketClient();
       await wsClient.connect(userId);
 
-      wsClient.onConnectionStatus((status: { connected: boolean }) => {
+      wsClient.onConnectionStatus((status) => {
         setIsConnected(status.connected);
       });
 
-      wsClient.onNotification((notification: Notification) => {
+      wsClient.onNotification((notification) => {
         setNotifications(prev => [notification, ...prev.slice(0, 99)]); // Keep last 100
       });
 
-      wsClient.onPriceAlert((alert: PriceAlertNotification) => {
+      wsClient.onPriceAlert((alert) => {
         // Add price alert to notifications
-        const notification: Notification = {
+        const notification = {
           type: 'price_alert',
           message: `${alert.symbol} reached $${alert.current_price} (${alert.condition} $${alert.target_price})`,
           timestamp: alert.timestamp,
@@ -78,11 +78,11 @@ export default function NotificationsCenter() {
     setNotifications([]);
   };
 
-  const formatTimestamp = (timestamp: string) => {
+  const formatTimestamp = (timestamp) => {
     return new Date(timestamp).toLocaleString();
   };
 
-  const getNotificationIcon = (type: string) => {
+  const getNotificationIcon = (type) => {
     switch (type) {
       case 'price_alert': return '📈';
       case 'portfolio_update': return '💼';
@@ -92,7 +92,7 @@ export default function NotificationsCenter() {
     }
   };
 
-  const getNotificationColor = (type: string, level?: string) => {
+  const getNotificationColor = (type, level) => {
     if (level) {
       switch (level) {
         case 'success': return 'border-l-success bg-success/5';

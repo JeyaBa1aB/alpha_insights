@@ -3,7 +3,7 @@
 
 import { getToken } from './auth';
 
-const API_BASE_URL = 'http://localhost:5003';
+const API_BASE_URL = 'http://localhost:5000';
 
 // Types
 export interface StockQuote {
@@ -209,6 +209,162 @@ export const aiChatService = {
   }>> {
     const params = sessionId ? `?session_id=${encodeURIComponent(sessionId)}` : '';
     return apiClient.get(`/api/ai/conversation-flow${params}`);
+  },
+};
+
+// Portfolio Service - Enhanced with Real-Time Market Data
+export const portfolioService = {
+  async getPortfolioSummary(): Promise<ApiResponse<{
+    totalValue: number;
+    dailyChange: number;
+    dailyChangePercent: number;
+    totalGainLoss: number;
+    totalGainLossPercent: number;
+    cashBalance: number;
+    holdings: any[];
+    performance: any[];
+  }>> {
+    return apiClient.get('/api/portfolio');
+  },
+
+  async getRealTimePortfolio(): Promise<ApiResponse<any>> {
+    return apiClient.get('/api/portfolio/real-time');
+  },
+
+  async getHoldings(): Promise<ApiResponse<any[]>> {
+    return apiClient.get('/api/portfolio/holdings');
+  },
+
+  async getRealTimeHoldings(): Promise<ApiResponse<any[]>> {
+    return apiClient.get('/api/portfolio/holdings/real-time');
+  },
+
+  async getActivity(): Promise<ApiResponse<any[]>> {
+    return apiClient.get('/api/portfolio/activity');
+  },
+
+  async getPerformance(timeframe = '6M'): Promise<ApiResponse<any[]>> {
+    const params = new URLSearchParams({ timeframe });
+    return apiClient.get(`/api/portfolio/performance?${params}`);
+  },
+
+  async getAnalytics(): Promise<ApiResponse<{
+    asset_allocation: any;
+    risk_metrics: any;
+    insights: any[];
+    overall_score: number;
+  }>> {
+    return apiClient.get('/api/portfolio/analytics');
+  },
+
+  async getAssetAllocation(): Promise<ApiResponse<{
+    allocation: any;
+    total_value: number;
+    diversification_score: number;
+    recommendations: string[];
+  }>> {
+    return apiClient.get('/api/portfolio/asset-allocation');
+  },
+
+  async getRiskMetrics(period = 252): Promise<ApiResponse<{
+    beta: number;
+    sharpe_ratio: number;
+    volatility: number;
+    alpha: number;
+    correlation: number;
+    max_drawdown: number;
+    var_95: number;
+    risk_score: number;
+    risk_level: string;
+    recommendations: string[];
+  }>> {
+    const params = new URLSearchParams({ period: period.toString() });
+    return apiClient.get(`/api/portfolio/risk-metrics?${params}`);
+  },
+
+  async getRiskAnalysis(): Promise<ApiResponse<{
+    riskScore: number;
+    volatility: number;
+    sharpeRatio: number;
+    beta: number;
+    diversificationScore: number;
+    recommendations: string[];
+  }>> {
+    return apiClient.get('/api/portfolio/risk-analysis');
+  },
+};
+
+// Transaction Service - New Database-Driven Service
+export const transactionService = {
+  async createTransaction(transaction: {
+    symbol: string;
+    type: 'buy' | 'sell';
+    shares: number;
+    price: number;
+  }): Promise<ApiResponse<{ message: string; transaction_id: string }>> {
+    return apiClient.post('/api/transactions', transaction);
+  },
+
+  async updateTransaction(transactionId: string, updates: {
+    symbol?: string;
+    type?: 'buy' | 'sell';
+    shares?: number;
+    price?: number;
+  }): Promise<ApiResponse<{ message: string }>> {
+    return apiClient.put(`/api/transactions/${transactionId}`, updates);
+  },
+
+  async deleteTransaction(transactionId: string): Promise<ApiResponse<{ message: string }>> {
+    return apiClient.delete(`/api/transactions/${transactionId}`);
+  },
+};
+
+// Education Service - New Database-Driven Service
+export const educationService = {
+  async getArticles(category?: string): Promise<ApiResponse<{
+    id: string;
+    title: string;
+    summary: string;
+    category: string;
+    createdAt: string;
+    updatedAt: string;
+  }[]>> {
+    const params = category ? new URLSearchParams({ category }) : '';
+    return apiClient.get(`/api/education/articles${params ? `?${params}` : ''}`);
+  },
+
+  async getArticle(articleId: string): Promise<ApiResponse<{
+    id: string;
+    title: string;
+    summary: string;
+    content: string;
+    category: string;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    return apiClient.get(`/api/education/articles/${articleId}`);
+  },
+};
+
+// User Profile Service - New Database-Driven Service
+export const userService = {
+  async getProfile(): Promise<ApiResponse<{
+    id: string;
+    username: string;
+    email: string;
+    role: string;
+    createdAt: string;
+    lastLogin: string | null;
+    isActive: boolean;
+  }>> {
+    return apiClient.get('/api/user/profile');
+  },
+
+  async updateProfile(updates: {
+    username?: string;
+    email?: string;
+  }): Promise<ApiResponse<{ message: string }>> {
+    return apiClient.put('/api/user/profile', updates);
   },
 };
 

@@ -2,26 +2,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import GlassmorphicCard from './GlassmorphicCard';
 import GradientButton from './GradientButton';
-import { getWebSocketClient, Notification, PriceAlertNotification } from '../utils/websocket';
+import { getWebSocketClient } from '../utils/websocket';
 import { notificationsService } from '../utils/api';
 import { getToken } from '../utils/auth';
 
-interface NotificationCenterProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose }) => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+const NotificationCenter = ({ isOpen, onClose }) => {
+  const [notifications, setNotifications] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
-  const [alerts, setAlerts] = useState<any[]>([]);
+  const [alerts, setAlerts] = useState([]);
   const [newAlertForm, setNewAlertForm] = useState({
     symbol: '',
-    condition: 'above' as 'above' | 'below',
+    condition: 'above',
     target_price: ''
   });
   const [showNewAlertForm, setShowNewAlertForm] = useState(false);
-  const wsClient = useRef<any>(null);
+  const wsClient = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -48,11 +43,11 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
       wsClient.current = getWebSocketClient();
       await wsClient.current.connect(userId);
 
-      wsClient.current.onConnectionStatus((status: { connected: boolean }) => {
+      wsClient.current.onConnectionStatus((status) => {
         setIsConnected(status.connected);
       });
 
-      wsClient.current.onNotification((notification: Notification) => {
+      wsClient.current.onNotification((notification) => {
         setNotifications(prev => [notification, ...prev.slice(0, 49)]); // Keep last 50
         
         // Show browser notification if supported
@@ -64,7 +59,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
         }
       });
 
-      wsClient.current.onPriceAlert((alert: PriceAlertNotification) => {
+      wsClient.current.onPriceAlert((alert) => {
         // Handle price alert specifically
         console.log('Price alert triggered:', alert);
       });
@@ -121,7 +116,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
     }
   };
 
-  const deleteAlert = async (alertId: string) => {
+  const deleteAlert = async (alertId) => {
     try {
       const response = await notificationsService.deleteAlert(alertId);
       if (response.success) {
@@ -150,11 +145,11 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
     }
   };
 
-  const formatDate = (timestamp: string) => {
+  const formatDate = (timestamp) => {
     return new Date(timestamp).toLocaleString();
   };
 
-  const getNotificationIcon = (type: string) => {
+  const getNotificationIcon = (type) => {
     switch (type) {
       case 'price_alert': return '📈';
       case 'portfolio_update': return '💼';
@@ -164,7 +159,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
     }
   };
 
-  const getNotificationColor = (level?: string) => {
+  const getNotificationColor = (level) => {
     switch (level) {
       case 'success': return 'text-success border-success/20 bg-success/10';
       case 'warning': return 'text-warning border-warning/20 bg-warning/10';
@@ -277,7 +272,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
                     </label>
                     <select
                       value={newAlertForm.condition}
-                      onChange={(e) => setNewAlertForm(prev => ({ ...prev, condition: e.target.value as 'above' | 'below' }))}
+                      onChange={(e) => setNewAlertForm(prev => ({ ...prev, condition: e.target.value }))}
                       className="input-glass w-full"
                     >
                       <option value="above">Above</option>
