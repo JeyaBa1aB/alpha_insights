@@ -9,6 +9,7 @@ from flask import Blueprint, request, jsonify, current_app
 from datetime import datetime
 
 from .auth import decode_jwt
+from ..models import create_transaction, delete_transaction as delete_transaction_model
 
 logger = logging.getLogger(__name__)
 
@@ -54,22 +55,16 @@ def create_transaction():
         except (ValueError, TypeError):
             return jsonify({'error': 'Shares and price must be valid numbers'}), 400
         
-        # Create transaction record
-        transaction = {
-            'user_id': user_id,
-            'symbol': data['symbol'].upper(),
-            'type': data['type'],
-            'shares': shares,
-            'price': price,
-            'total': shares * price,
-            'status': 'completed',  # In a real system, this might be 'pending' initially
-            'created_at': datetime.utcnow(),
-            'updated_at': datetime.utcnow()
-        }
-        
-        # Insert into database
-        result = current_app.db.transactions.insert_one(transaction)
-        transaction_id = str(result.inserted_id)
+        # Create transaction using the model function (which handles portfolio creation/updates)
+        transaction_id = create_transaction(
+            current_app.db, 
+            user_id, 
+            data['symbol'], 
+            data['type'], 
+            shares, 
+            price
+        )
+        transaction_id = str(transaction_id)
         
         logger.info(f"Transaction created: {transaction_id} for user {user_id}")
         
@@ -170,7 +165,7 @@ def update_transaction(transaction_id):
         return jsonify({'error': 'Failed to update transaction'}), 500
 
 @transactions_bp.route('/<transaction_id>', methods=['DELETE'])
-def delete_transaction(transaction_id):
+def delete_transaction_route(transaction_id):
     """Delete a transaction"""
     try:
         payload = require_auth()
@@ -179,17 +174,49 @@ def delete_transaction(transaction_id):
             
         user_id = payload['user_id']
         
-        # Delete transaction from database
+        # Validate ObjectId format
         from bson import ObjectId
-        result = current_app.db.transactions.delete_one({
-            '_id': ObjectId(transaction_id),
-            'user_id': user_id
+        from bson.errors import InvalidId
+        
+        try:
+            transaction_obj_id = ObjectId(transaction_id)
+        except InvalidId:
+            logger.error(f"Invalid ObjectId format: {transaction_id}")
+            return jsonify({'error': f'Invalid transaction ID format: {transaction_id}'}), 400
+        
+        # First get the transaction to find the portfolio
+        from ..models import get_transactions_collection, get_portfolio_collection
+        
+        transaction = get_transactions_collection(current_app.db).find_one({
+            '_id': transaction_obj_id
         })
         
-        if result.deleted_count == 0:
+        if not transaction:
+            logger.warning(f"Transaction not found: {transaction_id}")
             return jsonify({'error': 'Transaction not found'}), 404
         
-        logger.info(f"Transaction deleted: {transaction_id} for user {user_id}")
+        # Verify the transaction belongs to the user's portfolio
+        portfolio = get_portfolio_collection(current_app.db).find_one({
+            '_id': transaction['portfolioId'],
+            'userId': ObjectId(user_id)
+        })
+        
+        if not portfolio:
+            logger.warning(f"Portfolio access denied for transaction {transaction_id}, user {user_id}")
+            return jsonify({'error': 'Transaction not found or access denied'}), 404
+        
+        # Delete transaction using model function
+        success = delete_transaction_model(current_app.db, transaction_id)
+        
+        if not success:
+            logger.error(f"Failed to delete transaction {transaction_id}")
+            return jsonify({'error': 'Failed to delete transaction'}), 500
+        
+        # Recalculate portfolio value after deletion
+        from ..models import recalculate_portfolio_value
+        recalculate_portfolio_value(current_app.db, portfolio['_id'])
+        
+        logger.info(f"Transaction deleted successfully: {transaction_id} for user {user_id}")
         
         return jsonify({
             'success': True,
@@ -202,7 +229,8 @@ def delete_transaction(transaction_id):
         return jsonify({'error': 'Invalid token'}), 401
     except Exception as e:
         logger.error(f"Delete transaction error: {str(e)}")
-        return jsonify({'error': 'Failed to delete transaction'}), 500
+        logger.error(f"Transaction ID: {transaction_id}, User ID: {user_id}")
+        return jsonify({'error': f'Failed to delete transaction: {str(e)}'}), 500
 
 @transactions_bp.route('', methods=['GET'])
 def get_transactions():
@@ -216,45 +244,27 @@ def get_transactions():
         
         # Get query parameters
         limit = request.args.get('limit', 50, type=int)
-        offset = request.args.get('offset', 0, type=int)
-        symbol = request.args.get('symbol')
-        transaction_type = request.args.get('type')
         
-        # Build query
-        query = {'user_id': user_id}
-        if symbol:
-            query['symbol'] = symbol.upper()
-        if transaction_type:
-            query['type'] = transaction_type
+        # Use the model function to get user transactions
+        from ..models import get_user_transactions
+        transactions_data = get_user_transactions(current_app.db, user_id, limit=limit)
         
-        # Get transactions from database
-        transactions_cursor = current_app.db.transactions.find(query).sort('created_at', -1).skip(offset).limit(limit)
         transactions = []
-        
-        for transaction in transactions_cursor:
+        for transaction in transactions_data:
             transactions.append({
                 'id': str(transaction['_id']),
                 'symbol': transaction['symbol'],
                 'type': transaction['type'],
                 'shares': transaction['shares'],
                 'price': transaction['price'],
-                'total': transaction['total'],
-                'status': transaction['status'],
-                'created_at': transaction['created_at'].isoformat() + 'Z',
-                'updated_at': transaction['updated_at'].isoformat() + 'Z'
+                'total': transaction['shares'] * transaction['price'],
+                'status': 'completed',
+                'date': transaction['transactionDate'].isoformat() + 'Z'
             })
-        
-        # Get total count for pagination
-        total_count = current_app.db.transactions.count_documents(query)
         
         return jsonify({
             'success': True,
-            'data': {
-                'transactions': transactions,
-                'total_count': total_count,
-                'limit': limit,
-                'offset': offset
-            }
+            'data': transactions
         })
         
     except jwt.ExpiredSignatureError:

@@ -118,3 +118,6 @@ if __name__ == '__main__':
         print("2. Start the backend: python start_server.py")
         print("3. Check for any error messages")
         sys.exit(1)
+
+
+        

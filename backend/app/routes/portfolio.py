@@ -7,7 +7,8 @@ import jwt
 import logging
 from flask import Blueprint, request, jsonify, current_app
 
-from ..models import get_portfolio_stats, calculate_portfolio_performance
+from ..models import get_portfolio_stats, calculate_portfolio_performance, get_user_transactions
+from ..services.analytics_service import PortfolioAnalyticsService
 from .auth import decode_jwt
 
 logger = logging.getLogger(__name__)
@@ -26,7 +27,7 @@ def require_auth():
 
 @portfolio_bp.route('', methods=['GET'])
 def get_portfolio_summary():
-    """Get portfolio summary with performance metrics - DATABASE DRIVEN"""
+    """Get comprehensive portfolio summary with performance metrics - DATABASE DRIVEN"""
     try:
         payload = require_auth()
         if isinstance(payload, tuple):  # Error response
@@ -37,28 +38,56 @@ def get_portfolio_summary():
         # Get real portfolio stats from database
         portfolio_stats = get_portfolio_stats(current_app.db, user_id)
         
-        # Format response to match frontend expectations
+        # Format comprehensive response for frontend
         portfolio_summary = {
             'totalValue': portfolio_stats['summary']['totalValue'],
-            'dailyChange': 0,  # Would need market data integration for real-time changes
-            'dailyChangePercent': 0,
+            'dailyChange': portfolio_stats['summary']['dailyChange'],
+            'dailyChangePercent': portfolio_stats['summary']['dailyChangePercent'],
             'totalGainLoss': portfolio_stats['summary']['totalGainLoss'],
             'totalGainLossPercent': portfolio_stats['summary']['totalGainLossPercent'],
             'cashBalance': 0,  # Would be stored separately in a real system
+            'holdingsCount': portfolio_stats['summary']['holdingsCount'],
             'holdings': [],
+            'recentTransactions': [],
             'performance': calculate_portfolio_performance(current_app.db, portfolio_stats['portfolio']['_id'])
         }
         
-        # Format holdings for frontend
+        # Format holdings for frontend with enhanced data
         for holding in portfolio_stats['holdings']:
+            # Use the enhanced market data from models
+            current_price = holding.get('currentPrice', holding['averageCost'])
+            market_value = holding.get('marketValue', holding['totalShares'] * holding['averageCost'])
+            total_cost = holding['totalCost']
+            gain_loss = market_value - total_cost
+            gain_loss_percent = (gain_loss / total_cost * 100) if total_cost > 0 else 0
+            daily_change = holding.get('dailyChange', 0)
+            
             portfolio_summary['holdings'].append({
+                'id': str(holding.get('_id', holding['symbol'])),
                 'symbol': holding['symbol'],
                 'name': holding['symbol'],  # Would get from market data service
                 'shares': holding['totalShares'],
-                'currentPrice': holding['averageCost'],  # Would get from market data
-                'totalValue': holding['totalShares'] * holding['averageCost'],
-                'dayChange': 0,  # Would calculate from market data
-                'totalReturn': 0  # Would calculate from current vs average price
+                'avgCost': holding['averageCost'],
+                'currentPrice': current_price,
+                'totalValue': market_value,
+                'totalCost': total_cost,
+                'unrealizedGain': gain_loss,
+                'unrealizedGainPercent': gain_loss_percent,
+                'dayChange': daily_change,
+                'sector': 'Technology'  # Would get from market data
+            })
+        
+        # Format recent transactions
+        for transaction in portfolio_stats['recent_transactions']:
+            portfolio_summary['recentTransactions'].append({
+                'id': str(transaction['_id']),
+                'type': transaction['type'],
+                'symbol': transaction['symbol'],
+                'shares': transaction['shares'],
+                'price': transaction['price'],
+                'total': transaction['shares'] * transaction['price'],
+                'date': transaction['transactionDate'].isoformat() + 'Z',
+                'status': 'completed'
             })
         
         return jsonify({
@@ -169,7 +198,7 @@ def get_portfolio_risk_analysis():
 
 @portfolio_bp.route('/activity', methods=['GET'])
 def get_portfolio_activity():
-    """Get portfolio activity/transaction history"""
+    """Get portfolio activity/transaction history - DATABASE DRIVEN"""
     try:
         payload = require_auth()
         if isinstance(payload, tuple):  # Error response
@@ -177,53 +206,22 @@ def get_portfolio_activity():
             
         user_id = payload['user_id']
         
-        # Mock activity data
-        activity = [
-            {
-                'id': '1',
-                'type': 'buy',
-                'symbol': 'AAPL',
-                'name': 'Apple Inc.',
-                'shares': 50,
-                'price': 148.20,
-                'total': 7410.00,
-                'date': '2025-07-20T10:30:00Z',
+        # Get real transaction data from database
+        transactions = get_user_transactions(current_app.db, user_id, limit=20)
+        
+        activity = []
+        for transaction in transactions:
+            activity.append({
+                'id': str(transaction['_id']),
+                'type': transaction['type'],
+                'symbol': transaction['symbol'],
+                'name': transaction['symbol'],  # Would get from market data service
+                'shares': transaction['shares'],
+                'price': transaction['price'],
+                'total': transaction['shares'] * transaction['price'],
+                'date': transaction['transactionDate'].isoformat() + 'Z',
                 'status': 'completed'
-            },
-            {
-                'id': '2',
-                'type': 'buy',
-                'symbol': 'MSFT',
-                'name': 'Microsoft Corp.',
-                'shares': 30,
-                'price': 340.25,
-                'total': 10207.50,
-                'date': '2025-07-18T14:15:00Z',
-                'status': 'completed'
-            },
-            {
-                'id': '3',
-                'type': 'sell',
-                'symbol': 'TSLA',
-                'name': 'Tesla Inc.',
-                'shares': 25,
-                'price': 245.80,
-                'total': 6145.00,
-                'date': '2025-07-15T11:45:00Z',
-                'status': 'completed'
-            },
-            {
-                'id': '4',
-                'type': 'buy',
-                'symbol': 'AAPL',
-                'name': 'Apple Inc.',
-                'shares': 100,
-                'price': 148.20,
-                'total': 14820.00,
-                'date': '2025-07-10T09:30:00Z',
-                'status': 'completed'
-            }
-        ]
+            })
         
         return jsonify({
             'success': True,
@@ -237,6 +235,45 @@ def get_portfolio_activity():
     except Exception as e:
         logger.error(f"Portfolio activity error: {str(e)}")
         return jsonify({'error': 'Failed to fetch portfolio activity'}), 500
+
+@portfolio_bp.route('/transactions', methods=['GET'])
+def get_portfolio_transactions_route():
+    """Get user's transaction history"""
+    try:
+        payload = require_auth()
+        if isinstance(payload, tuple):
+            return payload
+            
+        user_id = payload['user_id']
+        limit = request.args.get('limit', 50, type=int)
+        
+        transactions = get_user_transactions(current_app.db, user_id, limit=limit)
+        
+        formatted_transactions = []
+        for t in transactions:
+            formatted_transactions.append({
+                'id': str(t['_id']),
+                'type': t.get('type'),
+                'symbol': t.get('symbol'),
+                'shares': t.get('shares'),
+                'price': t.get('price'),
+                'total': t.get('shares', 0) * t.get('price', 0),
+                'date': t.get('transactionDate').isoformat() + 'Z' if t.get('transactionDate') else None,
+                'status': 'completed'
+            })
+        
+        return jsonify({
+            'success': True,
+            'data': formatted_transactions
+        })
+        
+    except jwt.ExpiredSignatureError:
+        return jsonify({'error': 'Token expired'}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({'error': 'Invalid token'}), 401
+    except Exception as e:
+        logger.error(f"Portfolio transactions error: {str(e)}")
+        return jsonify({'error': 'Failed to fetch transactions'}), 500
 
 @portfolio_bp.route('/real-time', methods=['GET'])
 def get_real_time_portfolio():
@@ -417,26 +454,12 @@ def get_risk_metrics():
             return payload
             
         user_id = payload['user_id']
-        period = request.args.get('period', 252, type=int)  # Default 1 year
         
-        # Mock risk metrics data
-        risk_metrics = {
-            'beta': 1.15,
-            'sharpe_ratio': 1.24,
-            'volatility': 18.5,
-            'alpha': 2.3,
-            'correlation': 0.85,
-            'max_drawdown': -12.3,
-            'var_95': -2.1,
-            'risk_score': 6.8,
-            'risk_level': 'Moderate-High',
-            'recommendations': [
-                'Consider adding defensive stocks to reduce beta',
-                'Current Sharpe ratio indicates good risk-adjusted returns',
-                'Volatility is above market average',
-                'Maximum drawdown is within acceptable range'
-            ]
-        }
+        # Use analytics service for real calculations
+        from ..services.analytics_service import PortfolioAnalyticsService
+        analytics_service = PortfolioAnalyticsService(current_app.db)
+        
+        risk_metrics = analytics_service.calculate_risk_metrics(user_id)
         
         return jsonify({
             'success': True,
@@ -450,6 +473,64 @@ def get_risk_metrics():
     except Exception as e:
         logger.error(f"Risk metrics error: {str(e)}")
         return jsonify({'error': 'Failed to fetch risk metrics'}), 500
+
+@portfolio_bp.route('/sector-allocation', methods=['GET'])
+def get_sector_allocation():
+    """Get portfolio sector allocation"""
+    try:
+        payload = require_auth()
+        if isinstance(payload, tuple):  # Error response
+            return payload
+            
+        user_id = payload['user_id']
+        
+        # Use analytics service for real calculations
+        from ..services.analytics_service import PortfolioAnalyticsService
+        analytics_service = PortfolioAnalyticsService(current_app.db)
+        
+        sector_data = analytics_service.calculate_sector_allocation(user_id)
+        
+        return jsonify({
+            'success': True,
+            'data': sector_data
+        })
+        
+    except jwt.ExpiredSignatureError:
+        return jsonify({'error': 'Token expired'}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({'error': 'Invalid token'}), 401
+    except Exception as e:
+        logger.error(f"Sector allocation error: {str(e)}")
+        return jsonify({'error': 'Failed to fetch sector allocation'}), 500
+
+@portfolio_bp.route('/ai-insights', methods=['GET'])
+def get_ai_insights():
+    """Get AI-powered portfolio insights and recommendations"""
+    try:
+        payload = require_auth()
+        if isinstance(payload, tuple):  # Error response
+            return payload
+            
+        user_id = payload['user_id']
+        
+        # Use analytics service for AI insights
+        from ..services.analytics_service import PortfolioAnalyticsService
+        analytics_service = PortfolioAnalyticsService(current_app.db)
+        
+        insights = analytics_service.get_portfolio_insights(user_id)
+        
+        return jsonify({
+            'success': True,
+            'data': insights
+        })
+        
+    except jwt.ExpiredSignatureError:
+        return jsonify({'error': 'Token expired'}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({'error': 'Invalid token'}), 401
+    except Exception as e:
+        logger.error(f"AI insights error: {str(e)}")
+        return jsonify({'error': 'Failed to fetch AI insights'}), 500
 
 @portfolio_bp.route('/performance', methods=['GET'])
 def get_portfolio_performance():
@@ -501,3 +582,6 @@ def get_portfolio_performance():
     except Exception as e:
         logger.error(f"Portfolio performance error: {str(e)}")
         return jsonify({'error': 'Failed to fetch portfolio performance'}), 500
+
+
+

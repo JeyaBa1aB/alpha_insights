@@ -73,10 +73,13 @@ def update_portfolio_value(db, portfolio_id, total_value):
 def get_transactions_collection(db):
     return db['transactions']
 
-def create_transaction(db, portfolio_id, symbol, transaction_type, shares, price):
-    """Create a new buy/sell transaction"""
+def create_transaction(db, user_id, symbol, transaction_type, shares, price):
+    """Create a new buy/sell transaction - accepts user_id and finds/creates portfolio"""
+    # Get or create user's portfolio
+    portfolio = get_user_portfolio(db, user_id)
+    
     transaction = {
-        "portfolioId": ObjectId(portfolio_id),
+        "portfolioId": ObjectId(portfolio["_id"]),
         "symbol": symbol.upper(),
         "type": transaction_type,  # "buy" or "sell"
         "shares": float(shares),
@@ -84,7 +87,17 @@ def create_transaction(db, portfolio_id, symbol, transaction_type, shares, price
         "transactionDate": datetime.now()
     }
     result = get_transactions_collection(db).insert_one(transaction)
+    
+    # Recalculate and update portfolio value after transaction
+    recalculate_portfolio_value(db, portfolio["_id"])
+    
     return result.inserted_id
+
+def recalculate_portfolio_value(db, portfolio_id):
+    """Recalculate portfolio total value based on current holdings"""
+    holdings = calculate_holdings(db, portfolio_id)
+    total_value = sum(holding["totalShares"] * holding["averageCost"] for holding in holdings.values())
+    update_portfolio_value(db, portfolio_id, total_value)
 
 def get_portfolio_transactions(db, portfolio_id, limit=None):
     """Get all transactions for a portfolio"""
@@ -247,15 +260,28 @@ def get_portfolio_stats(db, user_id):
     # Calculate total value, gains, etc.
     total_value = 0
     total_cost = 0
+    daily_change = 0
     
     for holding in holdings.values():
         total_cost += holding["totalCost"]
-        # In production, you'd fetch current market prices here
-        # For now, using the average cost as placeholder
-        total_value += holding["totalShares"] * holding["averageCost"]
+        
+        # Get simulated current market price (in production, use real market data API)
+        current_price = get_simulated_market_price(holding["symbol"], holding["averageCost"])
+        market_value = holding["totalShares"] * current_price
+        total_value += market_value
+        
+        # Calculate daily change (simulated 1-3% daily movement)
+        daily_price_change = get_simulated_daily_change(holding["symbol"])
+        daily_change += holding["totalShares"] * daily_price_change
+        
+        # Update holding with current market data
+        holding["currentPrice"] = current_price
+        holding["marketValue"] = market_value
+        holding["dailyChange"] = holding["totalShares"] * daily_price_change
     
     total_gain_loss = total_value - total_cost
     total_gain_loss_percent = (total_gain_loss / total_cost * 100) if total_cost > 0 else 0
+    daily_change_percent = (daily_change / (total_value - daily_change) * 100) if (total_value - daily_change) > 0 else 0
     
     return {
         "portfolio": portfolio,
@@ -266,9 +292,40 @@ def get_portfolio_stats(db, user_id):
             "totalCost": total_cost,
             "totalGainLoss": total_gain_loss,
             "totalGainLossPercent": total_gain_loss_percent,
+            "dailyChange": daily_change,
+            "dailyChangePercent": daily_change_percent,
             "holdingsCount": len(holdings)
         }
     }
+
+def get_simulated_market_price(symbol, avg_cost):
+    """Simulate current market price (replace with real market data API)"""
+    import random
+    import hashlib
+    
+    # Use symbol hash for consistent "random" prices
+    seed = int(hashlib.md5(symbol.encode()).hexdigest()[:8], 16)
+    random.seed(seed)
+    
+    # Simulate price movement between -20% to +40% from average cost
+    price_multiplier = random.uniform(0.8, 1.4)
+    return round(avg_cost * price_multiplier, 2)
+
+def get_simulated_daily_change(symbol):
+    """Simulate daily price change (replace with real market data API)"""
+    import random
+    import hashlib
+    from datetime import datetime
+    
+    # Use symbol + today's date for daily variation
+    today_seed = f"{symbol}_{datetime.now().strftime('%Y-%m-%d')}"
+    seed = int(hashlib.md5(today_seed.encode()).hexdigest()[:8], 16)
+    random.seed(seed)
+    
+    # Simulate daily change between -3% to +3%
+    base_price = 100  # This would be yesterday's closing price in production
+    daily_change_percent = random.uniform(-0.03, 0.03)
+    return round(base_price * daily_change_percent, 2)
 
 # ================================
 # PRICE ALERTS MODEL

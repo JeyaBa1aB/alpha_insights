@@ -265,7 +265,7 @@ const Dashboard = () => {
 
   const loadRiskMetrics = async () => {
     try {
-      const response = await portfolioService.getRiskAnalysis();
+      const response = await portfolioService.getRiskMetrics();
       if (response.success && response.data) {
         setRiskMetrics(response.data);
       } else {

@@ -243,6 +243,11 @@ export const portfolioService = {
     return apiClient.get('/api/portfolio/activity');
   },
 
+  async getTransactions(limit = 50): Promise<ApiResponse<any[]>> {
+    const params = new URLSearchParams({ limit: limit.toString() });
+    return apiClient.get(`/api/portfolio/transactions?${params}`);
+  },
+
   async getPerformance(timeframe = '6M'): Promise<ApiResponse<any[]>> {
     const params = new URLSearchParams({ timeframe });
     return apiClient.get(`/api/portfolio/performance?${params}`);
@@ -282,16 +287,24 @@ export const portfolioService = {
     return apiClient.get(`/api/portfolio/risk-metrics?${params}`);
   },
 
-  async getRiskAnalysis(): Promise<ApiResponse<{
-    riskScore: number;
-    volatility: number;
-    sharpeRatio: number;
-    beta: number;
-    diversificationScore: number;
+  async getSectorAllocation(): Promise<ApiResponse<{
+    allocation: Record<string, number>;
+    total_value: number;
+    diversification_score: number;
     recommendations: string[];
   }>> {
-    return apiClient.get('/api/portfolio/risk-analysis');
+    return apiClient.get('/api/portfolio/sector-allocation');
   },
+
+  async getAIInsights(): Promise<ApiResponse<{
+    insights: any[];
+    portfolio_score: number;
+    generated_at: string;
+  }>> {
+    return apiClient.get('/api/portfolio/ai-insights');
+  },
+
+
 };
 
 // Transaction Service - New Database-Driven Service

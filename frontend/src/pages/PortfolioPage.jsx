@@ -2,14 +2,29 @@
 import React, { useState, useEffect } from 'react';
 import GlassmorphicCard from '../components/GlassmorphicCard';
 import GradientButton from '../components/GradientButton';
-import { portfolioService, transactionService, marketDataService } from '../utils/api';
+
+import PortfolioSummaryCards from '../components/portfolio/PortfolioSummaryCards';
+import HoldingsTable from '../components/portfolio/HoldingsTable';
+import TransactionHistory from '../components/portfolio/TransactionHistory';
+import SectorAllocationChart from '../components/analytics/SectorAllocationChart';
+import PerformanceChart from '../components/analytics/PerformanceChart';
+import RiskMetricsCard from '../components/analytics/RiskMetricsCard';
+import AIRecommendations from '../components/ai/AIRecommendations';
+import AlertManager from '../components/alerts/AlertManager';
+import OrderForm from '../components/orders/OrderForm';
+import { portfolioService, transactionService } from '../utils/api';
+import { useSimulatedRealTimeData } from '../hooks/useRealTimeData';
 
 const PortfolioPage = () => {
+  const [portfolioData, setPortfolioData] = useState(null);
   const [holdings, setHoldings] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showAdvancedOrder, setShowAdvancedOrder] = useState(false);
+  const [selectedSymbol, setSelectedSymbol] = useState('');
+  const [activeTab, setActiveTab] = useState('overview');
   const [formData, setFormData] = useState({
     symbol: '',
     type: 'buy',
@@ -17,6 +32,10 @@ const PortfolioPage = () => {
     price: ''
   });
   const [submitting, setSubmitting] = useState(false);
+
+  // Get symbols for real-time data
+  const symbols = holdings.map(h => h.symbol);
+  const realTimeData = useSimulatedRealTimeData(symbols);
 
   useEffect(() => {
     loadPortfolioData();
@@ -26,23 +45,25 @@ const PortfolioPage = () => {
     try {
       setLoading(true);
       setError(null);
-      
-      // Load holdings and activity in parallel
-      const [holdingsResponse, activityResponse] = await Promise.all([
-        portfolioService.getHoldings(),
+
+      // Load comprehensive portfolio data
+      const [summaryResponse, transactionsResponse] = await Promise.all([
+        portfolioService.getPortfolioSummary(),
         portfolioService.getActivity()
       ]);
 
-      if (holdingsResponse.success) {
-        setHoldings(holdingsResponse.data);
+      if (summaryResponse.success) {
+        setPortfolioData(summaryResponse.data);
+        setHoldings(summaryResponse.data.holdings || []);
       } else {
-        console.error('Failed to load holdings:', holdingsResponse.error);
+        console.error('Failed to load portfolio summary:', summaryResponse.error);
+        setError('Failed to load portfolio data');
       }
 
-      if (activityResponse.success) {
-        setTransactions(activityResponse.data);
+      if (transactionsResponse.success) {
+        setTransactions(transactionsResponse.data);
       } else {
-        console.error('Failed to load activity:', activityResponse.error);
+        console.error('Failed to load transactions:', transactionsResponse.error);
       }
 
     } catch (error) {
@@ -63,7 +84,7 @@ const PortfolioPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.symbol || !formData.shares || !formData.price) {
       setError('Please fill in all fields');
       return;
@@ -90,12 +111,11 @@ const PortfolioPage = () => {
           shares: '',
           price: ''
         });
-        setShowAddForm(false);
-        
-        // Reload portfolio data
+        setShowAddModal(false);
+
+        // Reload portfolio data to reflect changes
         await loadPortfolioData();
-        
-        // Show success message (you could add a toast notification here)
+
         console.log('Transaction created successfully');
       } else {
         setError(response.error || 'Failed to create transaction');
@@ -116,9 +136,9 @@ const PortfolioPage = () => {
 
     try {
       const response = await transactionService.deleteTransaction(transactionId);
-      
+
       if (response.success) {
-        // Reload portfolio data
+        // Reload portfolio data to reflect changes
         await loadPortfolioData();
         console.log('Transaction deleted successfully');
       } else {
@@ -128,6 +148,17 @@ const PortfolioPage = () => {
       console.error('Failed to delete transaction:', error);
       setError('Failed to delete transaction');
     }
+  };
+
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(value || 0);
+  };
+
+  const formatPercent = (value) => {
+    return `${(value || 0) >= 0 ? '+' : ''}${(value || 0).toFixed(2)}%`;
   };
 
   if (loading) {
@@ -143,9 +174,12 @@ const PortfolioPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
-        
+    <div className="min-h-screen bg-slate-900 p-4 sm:p-6 lg:p-8 relative overflow-hidden">
+      {/* Interactive Particle Background */}
+      <InteractiveParticles />
+      
+      <div className="max-w-7xl mx-auto relative z-10">
+
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
@@ -157,8 +191,8 @@ const PortfolioPage = () => {
                 Manage your holdings and track transactions
               </p>
             </div>
-            <GradientButton 
-              onClick={() => setShowAddForm(true)}
+            <GradientButton
+              onClick={() => setShowAddModal(true)}
               className="flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -176,14 +210,43 @@ const PortfolioPage = () => {
           </div>
         )}
 
-        {/* Add Transaction Form */}
-        {showAddForm && (
-          <div className="mb-8">
-            <GlassmorphicCard>
+        {/* Enhanced Portfolio Summary Cards */}
+        <PortfolioSummaryCards portfolioData={portfolioData} realTimeData={realTimeData} />
+
+        {/* Navigation Tabs */}
+        <div className="mb-8">
+          <div className="flex space-x-1 bg-slate-800/50 p-1 rounded-lg">
+            {[
+              { id: 'overview', label: 'Overview', icon: '📊' },
+              { id: 'analytics', label: 'Analytics', icon: '📈' },
+              { id: 'ai-insights', label: 'AI Insights', icon: '🤖' },
+              { id: 'alerts', label: 'Alerts', icon: '🔔' },
+              { id: 'orders', label: 'Orders', icon: '📋' }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === tab.id
+                    ? 'bg-primary text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-slate-700/50'
+                }`}
+              >
+                <span>{tab.icon}</span>
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Add Transaction Modal */}
+        {showAddModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-slate-800 rounded-xl p-6 w-full max-w-md">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold text-white">Add New Transaction</h3>
                 <button
-                  onClick={() => setShowAddForm(false)}
+                  onClick={() => setShowAddModal(false)}
                   className="text-gray-400 hover:text-white transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -191,8 +254,8 @@ const PortfolioPage = () => {
                   </svg>
                 </button>
               </div>
-              
-              <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Stock Symbol
@@ -203,11 +266,11 @@ const PortfolioPage = () => {
                     value={formData.symbol}
                     onChange={handleInputChange}
                     placeholder="e.g., AAPL"
-                    className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary"
+                    className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary"
                     required
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Transaction Type
@@ -216,13 +279,13 @@ const PortfolioPage = () => {
                     name="type"
                     value={formData.type}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-primary"
+                    className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary"
                   >
                     <option value="buy">Buy</option>
                     <option value="sell">Sell</option>
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Shares
@@ -235,11 +298,11 @@ const PortfolioPage = () => {
                     placeholder="100"
                     min="0.01"
                     step="0.01"
-                    className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary"
+                    className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary"
                     required
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Price per Share
@@ -252,16 +315,16 @@ const PortfolioPage = () => {
                     placeholder="150.00"
                     min="0.01"
                     step="0.01"
-                    className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary"
+                    className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary"
                     required
                   />
                 </div>
-                
-                <div className="md:col-span-2 lg:col-span-4 flex gap-3">
-                  <GradientButton 
-                    type="submit" 
+
+                <div className="flex gap-3 pt-4">
+                  <GradientButton
+                    type="submit"
                     disabled={submitting}
-                    className="flex items-center gap-2"
+                    className="flex-1 flex items-center justify-center gap-2"
                   >
                     {submitting ? (
                       <>
@@ -279,121 +342,106 @@ const PortfolioPage = () => {
                   </GradientButton>
                   <button
                     type="button"
-                    onClick={() => setShowAddForm(false)}
+                    onClick={() => setShowAddModal(false)}
                     className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
                   >
                     Cancel
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Tab Content */}
+        {activeTab === 'overview' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Enhanced Holdings Table */}
+            <HoldingsTable 
+              holdings={holdings} 
+              realTimeData={realTimeData}
+              onAdvancedOrder={(symbol) => {
+                setSelectedSymbol(symbol || '');
+                setShowAdvancedOrder(true);
+              }}
+            />
+
+            {/* Enhanced Transaction History */}
+            <TransactionHistory 
+              transactions={transactions}
+              onDeleteTransaction={handleDeleteTransaction}
+            />
+          </div>
+        )}
+
+        {activeTab === 'analytics' && (
+          <div className="space-y-8">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+              <SectorAllocationChart holdings={holdings} />
+              <RiskMetricsCard portfolioData={portfolioData} />
+            </div>
+            <PerformanceChart portfolioData={portfolioData} />
+          </div>
+        )}
+
+        {activeTab === 'ai-insights' && (
+          <div className="space-y-8">
+            <AIRecommendations portfolioData={portfolioData} />
+          </div>
+        )}
+
+        {activeTab === 'alerts' && (
+          <div className="space-y-8">
+            <AlertManager holdings={holdings} />
+          </div>
+        )}
+
+        {activeTab === 'orders' && (
+          <div className="space-y-8">
+            <GlassmorphicCard>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-white">Advanced Order Management</h3>
+                <GradientButton 
+                  onClick={() => setShowAdvancedOrder(true)}
+                  className="flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  New Order
+                </GradientButton>
+              </div>
+              
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-slate-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <p className="text-gray-400 mb-2">No active orders</p>
+                <p className="text-gray-500 text-sm">Create limit orders, stop losses, and more advanced order types</p>
+              </div>
             </GlassmorphicCard>
           </div>
         )}
 
-        {/* Portfolio Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
-          {/* Current Holdings */}
-          <GlassmorphicCard>
-            <h3 className="text-xl font-semibold text-white mb-6">Current Holdings</h3>
-            {holdings.length === 0 ? (
-              <div className="text-center py-8">
-                <svg className="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                <p className="text-gray-400 mb-4">No holdings yet</p>
-                <GradientButton onClick={() => setShowAddForm(true)} size="sm">
-                  Add Your First Transaction
-                </GradientButton>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {holdings.map((holding, index) => (
-                  <div key={holding.id || index} className="flex items-center justify-between p-4 rounded-lg bg-slate-800/30 hover:bg-slate-700/30 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">{holding.symbol}</span>
-                      </div>
-                      <div>
-                        <p className="text-white font-medium">{holding.symbol}</p>
-                        <p className="text-gray-400 text-sm">{holding.shares} shares</p>
-                        <p className="text-gray-400 text-xs">Avg: ${holding.avgCost?.toFixed(2) || '0.00'}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-white font-medium">${holding.totalValue?.toLocaleString() || '0'}</p>
-                      <p className={`text-sm ${(holding.unrealizedGain || 0) >= 0 ? 'text-success' : 'text-error'}`}>
-                        {(holding.unrealizedGain || 0) >= 0 ? '+' : ''}${(holding.unrealizedGain || 0).toFixed(2)}
-                      </p>
-                      <p className={`text-xs ${(holding.unrealizedGainPercent || 0) >= 0 ? 'text-success' : 'text-error'}`}>
-                        {(holding.unrealizedGainPercent || 0) >= 0 ? '+' : ''}{(holding.unrealizedGainPercent || 0).toFixed(2)}%
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </GlassmorphicCard>
-
-          {/* Transaction History */}
-          <GlassmorphicCard>
-            <h3 className="text-xl font-semibold text-white mb-6">Recent Transactions</h3>
-            {transactions.length === 0 ? (
-              <div className="text-center py-8">
-                <svg className="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                <p className="text-gray-400">No transactions yet</p>
-              </div>
-            ) : (
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {transactions.map((transaction, index) => (
-                  <div key={transaction.id || index} className="flex items-center justify-between p-4 rounded-lg bg-slate-800/30">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        transaction.type === 'buy' ? 'bg-success/20 text-success' : 'bg-error/20 text-error'
-                      }`}>
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d={transaction.type === 'buy'
-                            ? "M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                            : "M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"
-                          } clipRule="evenodd" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-white font-medium">
-                          {transaction.type.toUpperCase()} {transaction.shares} {transaction.symbol}
-                        </p>
-                        <p className="text-gray-400 text-sm">
-                          ${transaction.price} per share
-                        </p>
-                        <p className="text-gray-400 text-xs">
-                          {transaction.date}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <p className="text-white font-medium">
-                          ${transaction.totalValue?.toLocaleString() || (transaction.shares * transaction.price).toLocaleString()}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteTransaction(transaction.id)}
-                        className="text-gray-400 hover:text-red-400 transition-colors p-1"
-                        title="Delete transaction"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </GlassmorphicCard>
-        </div>
+        {/* Advanced Order Form Modal */}
+        {showAdvancedOrder && (
+          <OrderForm
+            symbol={selectedSymbol}
+            currentPrice={selectedSymbol ? (realTimeData.prices[selectedSymbol]?.price || 100) : 100}
+            onSubmit={async (orderData) => {
+              console.log('Advanced order submitted:', orderData);
+              // In a real app, this would call the orders API
+              setShowAdvancedOrder(false);
+              setSelectedSymbol('');
+            }}
+            onCancel={() => {
+              setShowAdvancedOrder(false);
+              setSelectedSymbol('');
+            }}
+          />
+        )}
       </div>
     </div>
   );
