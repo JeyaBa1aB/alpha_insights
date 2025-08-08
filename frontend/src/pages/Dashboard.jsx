@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  
+
   // Check authentication on component mount
   useEffect(() => {
     const token = getToken();
@@ -21,7 +21,7 @@ const Dashboard = () => {
       navigate('/login');
       return;
     }
-    
+
     // Check if token is expired
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
@@ -62,7 +62,7 @@ const Dashboard = () => {
   const [totalGainLoss, setTotalGainLoss] = useState(18943.21);
   const [totalGainLossPercent, setTotalGainLossPercent] = useState(17.68);
 
-  // Refs for animations
+  // Refs for animations 
   const portfolioValueRef = useRef(null);
   const wsClient = useRef(null);
 
@@ -513,8 +513,8 @@ const Dashboard = () => {
                 </div>
               </div>
               <div className="h-80">
-                <Chart 
-                  data={chartData} 
+                <Chart
+                  data={chartData}
                   timeframe={selectedTimeframe}
                   height={320}
                   showArea={true}
@@ -532,13 +532,27 @@ const Dashboard = () => {
             <GlassmorphicCard className="animate-slide-up" style={{ animationDelay: '0.5s' }}>
               <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
               <div className="space-y-3">
-                <GradientButton className="w-full" size="md">
+                <GradientButton 
+                  className="w-full" 
+                  size="md"
+                  onClick={() => navigate('/portfolio')}
+                >
                   Add Investment
                 </GradientButton>
-                <GradientButton variant="secondary" className="w-full" size="md">
+                <GradientButton 
+                  variant="secondary" 
+                  className="w-full" 
+                  size="md"
+                  onClick={() => navigate('/research')}
+                >
                   Research Stocks
                 </GradientButton>
-                <GradientButton variant="secondary" className="w-full" size="md">
+                <GradientButton 
+                  variant="secondary" 
+                  className="w-full" 
+                  size="md"
+                  onClick={() => navigate('/analytics')}
+                >
                   View Analytics
                 </GradientButton>
               </div>

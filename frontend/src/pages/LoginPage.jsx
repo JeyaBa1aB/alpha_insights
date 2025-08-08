@@ -37,18 +37,26 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
+    <div className="min-h-screen flex items-center justify-center bg-slate-900">
       <form
-        className="backdrop-blur-lg bg-white/20 rounded-xl shadow-lg p-8 w-full max-w-md border border-white/30"
+        className="backdrop-blur-lg bg-slate-800/50 rounded-xl shadow-lg p-8 w-full max-w-md border border-slate-700/50"
         onSubmit={handleSubmit}
       >
-        <h2 className="text-2xl font-bold mb-6 text-white">Login</h2>
+        <div className="text-center mb-8">
+          <img 
+            src="/alpha-insights-logo.png" 
+            alt="Alpha Insights" 
+            className="h-16 w-16 mx-auto mb-4 object-contain"
+          />
+          <h2 className="text-2xl font-bold text-white">Welcome Back</h2>
+          <p className="text-gray-400 text-sm mt-2">Sign in to your Alpha Insights account</p>
+        </div>
         <input
           type="email"
           placeholder="Email"
           value={email}
           onChange={e => setEmail(e.target.value)}
-          className="w-full mb-4 p-3 rounded bg-white/40 text-black placeholder-gray-600"
+          className="w-full mb-4 p-3 rounded bg-slate-700 border border-slate-600 text-white placeholder-gray-400 focus:outline-none focus:border-indigo-500"
           required
         />
         <input
@@ -56,13 +64,13 @@ const LoginPage = () => {
           placeholder="Password"
           value={password}
           onChange={e => setPassword(e.target.value)}
-          className="w-full mb-4 p-3 rounded bg-white/40 text-black placeholder-gray-600"
+          className="w-full mb-4 p-3 rounded bg-slate-700 border border-slate-600 text-white placeholder-gray-400 focus:outline-none focus:border-indigo-500"
           required
         />
         {error && <div className="text-red-500 mb-4">{error}</div>}
         <button
           type="submit"
-          className="w-full py-3 rounded bg-gradient-to-r from-purple-500 to-blue-500 text-white font-semibold shadow"
+          className="w-full py-3 rounded bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold shadow transition-colors"
         >
           Sign In
         </button>
@@ -70,7 +78,7 @@ const LoginPage = () => {
         <div className="mt-4 text-center">
           <p className="text-white text-sm">
             Don't have an account?{' '}
-            <Link to="/signup" className="text-yellow-300 hover:text-yellow-100 underline">
+            <Link to="/signup" className="text-indigo-400 hover:text-indigo-300 underline">
               Sign up here
             </Link>
           </p>

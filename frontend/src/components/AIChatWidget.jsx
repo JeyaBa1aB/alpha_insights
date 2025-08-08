@@ -2,6 +2,21 @@ import React, { useState, useRef, useEffect } from 'react';
 import GradientButton from './GradientButton';
 import GlassmorphicCard from './GlassmorphicCard';
 import { aiChatService } from '../utils/api';
+import { getToken } from '../utils/auth';
+
+// Helper function to get user ID from token
+const getUserIdFromToken = () => {
+  try {
+    const token = getToken();
+    if (!token) return null;
+    
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.user_id;
+  } catch (error) {
+    console.error('Failed to get user ID from token:', error);
+    return null;
+  }
+};
 
 const AIChatWidget = () => {
   const [open, setOpen] = useState(false);
@@ -56,7 +71,7 @@ const AIChatWidget = () => {
           current_timestamp: new Date().toISOString(),
           last_agent: messages.length > 0 ? messages[messages.length - 1]?.agent : null,
           conversation_length: messages.length,
-          user_id: 'current_user' // This would come from auth context in real app
+          user_id: getUserIdFromToken() // Get actual user ID from auth token
         };
 
         // Send message to AI service

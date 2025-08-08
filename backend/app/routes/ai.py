@@ -33,8 +33,20 @@ def ai_chat():
             if payload:
                 user_id = payload.get('user_id')
                 user_context['user_id'] = user_id
+                logger.info(f"AI Chat - User ID from JWT: {user_id}")
+        else:
+            logger.warning("AI Chat - No authorization header found")
         
-        response = ai_service.route_query(user_message, user_context)
+        logger.info(f"AI Chat - Message: {user_message[:50]}..., User ID: {user_id}")
+        
+        # Create a fresh AI service instance with the correct database
+        from ..services.ai_service import AIService
+        request_ai_service = AIService()
+        request_ai_service.db = current_app.db
+        logger.info(f"AI Chat - Database set: {bool(request_ai_service.db)}")
+        
+        response = request_ai_service.route_query(user_message, user_context)
+        logger.info(f"AI Chat - Response agent: {response.get('agent', 'unknown')}")
         return jsonify({'success': True, 'data': response}), 200
         
     except Exception as e:
@@ -186,3 +198,42 @@ def get_conversation_flow():
     except Exception as e:
         logger.error(f"Conversation flow analysis error: {e}")
         return jsonify({'error': 'Failed to analyze conversation flow'}), 500
+
+@ai_bp.route('/test-portfolio', methods=['GET'])
+def test_portfolio_data():
+    """Test endpoint to check portfolio data retrieval"""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = decode_jwt(token)
+        if not payload:
+            return jsonify({'error': 'Invalid token'}), 401
+        
+        user_id = payload.get('user_id')
+        logger.info(f"Test Portfolio - User ID: {user_id}")
+        
+        # Test portfolio data retrieval
+        from ..services.portfolio_service import get_portfolio_service
+        portfolio_service = get_portfolio_service(current_app.db)
+        
+        if portfolio_service:
+            portfolio_summary = portfolio_service.get_portfolio_summary(user_id)
+            logger.info(f"Test Portfolio - Summary retrieved: {bool(portfolio_summary)}")
+            
+            return jsonify({
+                'success': True, 
+                'data': {
+                    'user_id': user_id,
+                    'portfolio_found': bool(portfolio_summary),
+                    'summary': portfolio_summary
+                }
+            }), 200
+        else:
+            return jsonify({'error': 'Portfolio service not available'}), 500
+        
+    except Exception as e:
+        logger.error(f"Test portfolio error: {e}")
+        return jsonify({'error': f'Test failed: {str(e)}'}), 500

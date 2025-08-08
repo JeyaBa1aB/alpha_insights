@@ -17,41 +17,48 @@ logger = logging.getLogger(__name__)
 admin_bp = Blueprint('admin_bp', __name__)
 
 def require_admin():
-    """Decorator helper to check admin authentication"""
+    """Helper to check admin authentication and return payload or raise exception"""
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
-        return jsonify({'error': 'Missing or invalid token'}), 401
+        raise ValueError('Missing or invalid token')
     
     token = auth_header.split(' ')[1]
     payload = decode_jwt(token)
-    if not payload:
-        return jsonify({'error': 'Invalid or expired token'}), 401
     
-    if payload['role'] != 'admin':
-        return jsonify({'error': 'Admin access required'}), 403
+    # Debug logging
+    logger.info(f"Decoded payload type: {type(payload)}, value: {payload}")
+    
+    if not payload:
+        raise ValueError('Invalid or expired token')
+    
+    # Check if payload is a dictionary
+    if not isinstance(payload, dict):
+        logger.error(f"Payload is not a dict, it's {type(payload)}: {payload}")
+        raise ValueError('Invalid token format')
+    
+    if payload.get('role') != 'admin':
+        raise ValueError('Admin access required')
     
     return payload
 
 @admin_bp.route('/protected', methods=['GET'])
 def admin_protected():
     """Admin protected route example"""
-    payload = require_admin()
-    if isinstance(payload, tuple):  # Error response
-        return payload
-    
-    return jsonify({
-        'message': f"Welcome admin {payload['username']}!", 
-        'role': payload['role']
-    }), 200
+    try:
+        payload = require_admin()
+        return jsonify({
+            'message': f"Welcome admin {payload['username']}!", 
+            'role': payload['role']
+        }), 200
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 401
 
 @admin_bp.route('/stats', methods=['GET'])
 def admin_stats():
     """Get admin dashboard statistics"""
-    payload = require_admin()
-    if isinstance(payload, tuple):  # Error response
-        return payload
-    
     try:
+        payload = require_admin()
+        
         # Get real database statistics
         stats = get_admin_stats(current_app.db)
         
@@ -81,6 +88,8 @@ def admin_stats():
         
         return jsonify(stats), 200
         
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 401
     except Exception as e:
         logger.error(f"Admin stats error: {e}")
         return jsonify({'error': 'Failed to fetch system stats'}), 500
@@ -88,22 +97,24 @@ def admin_stats():
 @admin_bp.route('/users', methods=['GET'])
 def admin_get_users():
     """Get all users for admin management"""
-    payload = require_admin()
-    if isinstance(payload, tuple):  # Error response
-        return payload
-    
     try:
+        payload = require_admin()
+        
         users_collection = get_user_collection(current_app.db)
         users = list(users_collection.find({}, {'password_hash': 0}))  # Exclude password hash
         
         # Convert ObjectId to string and add default fields
         for user in users:
+            # Store original _id before converting to string
+            original_id = user['_id']
             user['_id'] = str(user['_id'])
             user['isActive'] = user.get('isActive', True)
-            user['createdAt'] = user.get('createdAt', user.get('_id', {}).get('$date', '2024-01-01T00:00:00Z'))
+            user['createdAt'] = user.get('createdAt', '2024-01-01T00:00:00Z')
         
         return jsonify({'users': users}), 200
         
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 401
     except Exception as e:
         logger.error(f"Get users error: {e}")
         return jsonify({'error': 'Failed to fetch users'}), 500
@@ -111,11 +122,13 @@ def admin_get_users():
 @admin_bp.route('/users/<user_id>', methods=['PUT'])
 def admin_update_user(user_id):
     """Update user information"""
-    payload = require_admin()
-    if isinstance(payload, tuple):  # Error response
-        return payload
-    
     try:
+        payload = require_admin()
+        
+        # Validate ObjectId format
+        if not ObjectId.is_valid(user_id):
+            return jsonify({'error': 'Invalid user ID format'}), 400
+        
         data = request.json
         users_collection = get_user_collection(current_app.db)
         
@@ -140,6 +153,8 @@ def admin_update_user(user_id):
         logger.info(f"User {user_id} updated by admin {payload['username']}")
         return jsonify({'message': 'User updated successfully'}), 200
         
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 401
     except Exception as e:
         logger.error(f"Update user error: {e}")
         return jsonify({'error': 'Failed to update user'}), 500
@@ -147,11 +162,13 @@ def admin_update_user(user_id):
 @admin_bp.route('/users/<user_id>', methods=['DELETE'])
 def admin_delete_user(user_id):
     """Delete user account"""
-    payload = require_admin()
-    if isinstance(payload, tuple):  # Error response
-        return payload
-    
     try:
+        payload = require_admin()
+        
+        # Validate ObjectId format
+        if not ObjectId.is_valid(user_id):
+            return jsonify({'error': 'Invalid user ID format'}), 400
+        
         users_collection = get_user_collection(current_app.db)
         
         # Prevent admin from deleting themselves
@@ -166,6 +183,8 @@ def admin_delete_user(user_id):
         logger.info(f"User {user_id} deleted by admin {payload['username']}")
         return jsonify({'message': 'User deleted successfully'}), 200
         
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 401
     except Exception as e:
         logger.error(f"Delete user error: {e}")
         return jsonify({'error': 'Failed to delete user'}), 500

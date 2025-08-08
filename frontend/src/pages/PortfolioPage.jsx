@@ -1,5 +1,5 @@
 // src/pages/PortfolioPage.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import GlassmorphicCard from '../components/GlassmorphicCard';
 import GradientButton from '../components/GradientButton';
 
@@ -33,8 +33,8 @@ const PortfolioPage = () => {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  // Get symbols for real-time data
-  const symbols = holdings.map(h => h.symbol);
+  // Get symbols for real-time data (memoized to prevent infinite loops)
+  const symbols = useMemo(() => holdings.map(h => h.symbol), [holdings]);
   const realTimeData = useSimulatedRealTimeData(symbols);
 
   useEffect(() => {
@@ -175,9 +175,6 @@ const PortfolioPage = () => {
 
   return (
     <div className="min-h-screen bg-slate-900 p-4 sm:p-6 lg:p-8 relative overflow-hidden">
-      {/* Interactive Particle Background */}
-      <InteractiveParticles />
-      
       <div className="max-w-7xl mx-auto relative z-10">
 
         {/* Header */}

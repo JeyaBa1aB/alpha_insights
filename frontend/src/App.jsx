@@ -13,6 +13,10 @@ import EducationHub from './pages/EducationHub';
 import ProfileSettings from './pages/ProfileSettings';
 import AdminDashboard from './admin/AdminDashboard';
 import UserManagement from './admin/UserManagement';
+import AdminSettings from './admin/AdminSettings';
+import SystemSettings from './admin/SystemSettings';
+import AuditLog from './admin/AuditLog';
+import SystemMonitoring from './admin/SystemMonitoring';
 
 function App() {
   return (
@@ -32,6 +36,10 @@ function App() {
             <Route path="/settings" element={<ProfileSettings />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/users" element={<UserManagement />} />
+            <Route path="/admin/settings" element={<AdminSettings />} />
+            <Route path="/admin/system" element={<SystemSettings />} />
+            <Route path="/admin/audit" element={<AuditLog />} />
+            <Route path="/admin/monitoring" element={<SystemMonitoring />} />
           </Route>
         </Routes>
       </main>

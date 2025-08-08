@@ -30,10 +30,13 @@ def decode_jwt(token):
     """Decode and validate JWT token"""
     try:
         payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=[current_app.config['JWT_ALGORITHM']])
+        logger.info(f"JWT decode successful, payload type: {type(payload)}, value: {payload}")
         return payload
     except jwt.ExpiredSignatureError:
+        logger.error("JWT token expired")
         return None
-    except jwt.InvalidTokenError:
+    except jwt.InvalidTokenError as e:
+        logger.error(f"JWT token invalid: {e}")
         return None
 
 @auth_bp.route('/signup', methods=['POST'])

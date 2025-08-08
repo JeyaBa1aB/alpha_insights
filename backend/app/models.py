@@ -280,8 +280,8 @@ def get_portfolio_stats(db, user_id):
         holding["dailyChange"] = holding["totalShares"] * daily_price_change
     
     total_gain_loss = total_value - total_cost
-    total_gain_loss_percent = (total_gain_loss / total_cost * 100) if total_cost > 0 else 0
-    daily_change_percent = (daily_change / (total_value - daily_change) * 100) if (total_value - daily_change) > 0 else 0
+    total_gain_loss_percent = round((total_gain_loss / total_cost * 100), 2) if total_cost > 0 else 0
+    daily_change_percent = round((daily_change / (total_value - daily_change) * 100), 2) if (total_value - daily_change) > 0 else 0
     
     return {
         "portfolio": portfolio,

@@ -9,7 +9,7 @@ from flask import Blueprint, request, jsonify, current_app
 from datetime import datetime
 
 from .auth import decode_jwt
-from ..models import create_transaction, delete_transaction as delete_transaction_model
+from .. import models
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ def require_auth():
     return payload
 
 @transactions_bp.route('', methods=['POST'])
-def create_transaction():
+def create_transaction_route():
     """Create a new transaction (buy/sell order)"""
     try:
         payload = require_auth()
@@ -56,7 +56,7 @@ def create_transaction():
             return jsonify({'error': 'Shares and price must be valid numbers'}), 400
         
         # Create transaction using the model function (which handles portfolio creation/updates)
-        transaction_id = create_transaction(
+        transaction_id = models.create_transaction(
             current_app.db, 
             user_id, 
             data['symbol'], 
@@ -206,7 +206,7 @@ def delete_transaction_route(transaction_id):
             return jsonify({'error': 'Transaction not found or access denied'}), 404
         
         # Delete transaction using model function
-        success = delete_transaction_model(current_app.db, transaction_id)
+        success = models.delete_transaction(current_app.db, transaction_id)
         
         if not success:
             logger.error(f"Failed to delete transaction {transaction_id}")

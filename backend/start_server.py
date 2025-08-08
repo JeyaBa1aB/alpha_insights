@@ -9,10 +9,16 @@ if __name__ == '__main__':
     print("Press Ctrl+C to stop")
     
     try:
-        import app
+        from app import create_app
+        from app.extensions import socketio
         print("✅ App imported successfully")
         print("🌐 Starting server...")
-        app.socketio.run(app.app, debug=True, host='0.0.0.0', port=5000)
+        
+        # Create the Flask app using the factory
+        flask_app = create_app('development')
+        
+        # Run with socketio
+        socketio.run(flask_app, debug=True, host='0.0.0.0', port=5000)
     except KeyboardInterrupt:
         print("\n👋 Server stopped")
     except Exception as e:

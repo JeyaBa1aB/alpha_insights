@@ -374,9 +374,11 @@ def setup_websocket_handlers(socketio, notification_service: NotificationService
     def handle_connect(auth):
         """Handle client connection"""
         try:
+            from flask import request
+            
             # You might want to authenticate the user here
             user_id = auth.get('user_id') if auth else 'anonymous'
-            session_id = socketio.request.sid
+            session_id = request.sid
             
             notification_service.register_user_connection(user_id, session_id)
             
@@ -394,8 +396,10 @@ def setup_websocket_handlers(socketio, notification_service: NotificationService
     def handle_disconnect():
         """Handle client disconnection"""
         try:
+            from flask import request
+            
             # Find and remove user connection
-            session_id = socketio.request.sid
+            session_id = request.sid
             user_id = None
             
             for uid, sid in notification_service.active_connections.items():

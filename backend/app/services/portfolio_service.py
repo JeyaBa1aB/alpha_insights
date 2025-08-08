@@ -177,9 +177,14 @@ class PortfolioService:
     def get_portfolio_summary(self, user_id: str) -> Dict[str, Any]:
         """Get comprehensive portfolio summary with real-time data"""
         try:
+            logger.info(f"Portfolio Service - Getting summary for user: {user_id}")
+            
             # Get portfolio and holdings
             portfolio = get_user_portfolio(self.db, user_id)
+            logger.info(f"Portfolio Service - Portfolio found: {bool(portfolio)}")
+            
             if not portfolio:
+                logger.info("Portfolio Service - No portfolio found, returning empty summary")
                 return self._empty_portfolio_summary()
             
             holdings = self.get_portfolio_holdings(user_id)

@@ -413,9 +413,11 @@ class AIService:
         """Simplified query routing that returns clean conversational responses"""
         try:
             user_id = user_context.get('user_id') if user_context else None
+            logger.info(f"AI Service - User ID: {user_id}, Message: {user_message[:50]}...")
             
             # Simple routing based on keywords - no complex JSON processing
             agent_name = self._simple_route_query(user_message)
+            logger.info(f"AI Service - Routed to agent: {agent_name}")
             
             if agent_name == 'master':
                 # Handle simple queries directly
@@ -456,8 +458,8 @@ class AIService:
         if any(word in message_lower for word in ['hello', 'hi', 'hey', 'thanks', 'thank you', 'goodbye', 'bye']):
             return 'master'
         
-        # Portfolio-related queries
-        if any(word in message_lower for word in ['portfolio', 'allocation', 'diversification', 'rebalancing', 'performance']):
+        # Portfolio-related queries - make this more aggressive to catch "analyze my portfolio"
+        if any(word in message_lower for word in ['portfolio', 'allocation', 'diversification', 'rebalancing', 'performance', 'analyze', 'holdings', 'investment']):
             return 'portfolio'
         
         # Research-related queries
@@ -517,17 +519,32 @@ class AIService:
             user_id = user_context.get('user_id') if user_context else None
             
             # Build simple context for the agent
-            context = f"{agent.system_prompt}\n\nUser question: {user_message}\n\nProvide a helpful, direct response."
+            context = f"{agent.system_prompt}\n\nUser question: {user_message}\n"
+            
+            # Add portfolio data for portfolio-related queries
+            if agent_name == 'portfolio' and user_id:
+                logger.info(f"AI Service - Getting portfolio data for portfolio agent, user_id: {user_id}")
+                portfolio_data = self._get_user_portfolio_data(user_id)
+                logger.info(f"AI Service - Portfolio data retrieved: {portfolio_data[:100] if portfolio_data else 'None'}...")
+                if portfolio_data:
+                    context += f"\nUser's Portfolio Data:\n{portfolio_data}\n"
+                else:
+                    logger.warning("AI Service - No portfolio data available for context")
             
             # Add conversation history if available
             if agent.conversation_history:
-                context += "\n\nRecent conversation context:\n"
+                context += "\nRecent conversation context:\n"
                 for entry in agent.conversation_history[-3:]:  # Last 3 exchanges
                     context += f"User: {entry['user_message']}\n"
                     context += f"You: {entry['agent_response']}\n"
             
+            context += "\nProvide a helpful, direct response based on the user's actual data."
+            
             # Generate response
+            logger.info(f"AI Service - Sending context to Gemini (length: {len(context)})")
+            logger.info(f"AI Service - Context preview: {context[:200]}...")
             response = self._generate_response(context)
+            logger.info(f"AI Service - Gemini response: {response[:100] if response else 'None'}...")
             
             if response:
                 # Add to agent's conversation history
@@ -561,6 +578,88 @@ class AIService:
                 'response': "I'm experiencing technical difficulties. Please try again.",
                 'confidence': 0.1
             }
+    
+    def _get_user_portfolio_data(self, user_id: str) -> str:
+        """Get user's portfolio data for AI context"""
+        try:
+            logger.info(f"AI Service - Getting portfolio data for user: {user_id}")
+            
+            if not user_id:
+                logger.warning("AI Service - No user ID provided")
+                return "User authentication required to access portfolio data."
+            
+            # Import the same function used by the portfolio route
+            from ..models import get_portfolio_stats
+            
+            # Get portfolio summary using the same method as the regular portfolio endpoint
+            portfolio_summary = get_portfolio_stats(self.db, user_id)
+            logger.info(f"AI Service - Portfolio summary retrieved: {bool(portfolio_summary)}")
+            logger.info(f"AI Service - Portfolio summary type: {type(portfolio_summary)}")
+            logger.info(f"AI Service - Portfolio summary keys: {list(portfolio_summary.keys()) if isinstance(portfolio_summary, dict) else 'Not a dict'}")
+            
+            if not portfolio_summary:
+                logger.info("AI Service - No portfolio data found for user")
+                return "User has no portfolio data available. Please add some investments to your portfolio first."
+            
+            # get_portfolio_stats returns the data structure directly
+            summary = portfolio_summary.get('summary', {})
+            holdings = portfolio_summary.get('holdings', [])
+            
+            # Format portfolio data for AI context
+            portfolio_text = f"""
+Portfolio Summary:
+- Total Value: ${summary.get('totalValue', 0):,.2f}
+- Daily Change: ${summary.get('dailyChange', 0):,.2f} ({summary.get('dailyChangePercent', 0):.2f}%)
+- Total Gain/Loss: ${summary.get('totalGainLoss', 0):,.2f} ({summary.get('totalGainLossPercent', 0):.2f}%)
+- Number of Holdings: {summary.get('holdingsCount', 0)}
+- Cash Balance: ${summary.get('cashBalance', 0):,.2f}
+
+Top Holdings:"""
+            
+            # Add top holdings
+            for i, holding in enumerate(holdings[:5], 1):
+                total_shares = holding.get('totalShares', 0)
+                current_price = holding.get('currentPrice', 0)
+                market_value = holding.get('marketValue', 0)
+                total_cost = holding.get('totalCost', 0)
+                daily_change = holding.get('dailyChange', 0)
+                
+                # Calculate return percentages
+                total_return_percent = ((market_value - total_cost) / total_cost * 100) if total_cost > 0 else 0
+                daily_change_percent = (daily_change / (market_value - daily_change) * 100) if (market_value - daily_change) > 0 else 0
+                
+                portfolio_text += f"""
+{i}. {holding.get('symbol', 'N/A')}
+   - Shares: {total_shares:.1f}
+   - Current Price: ${current_price:.2f}
+   - Market Value: ${market_value:,.2f}
+   - Daily Change: ${daily_change:.2f} ({daily_change_percent:.2f}%)
+   - Total Return: {total_return_percent:.2f}%"""
+            
+            # Add asset allocation if available
+            if 'allocation' in portfolio_summary:
+                allocation = portfolio_summary['allocation']
+                portfolio_text += f"""
+
+Asset Allocation:
+- Stocks: {allocation.get('stocks', 0):.1f}%
+- Bonds: {allocation.get('bonds', 0):.1f}%
+- Cash: {allocation.get('cash', 0):.1f}%
+- Other: {allocation.get('other', 0):.1f}%"""
+            
+            # Add investment goals and risk tolerance if available
+            portfolio_text += f"""
+
+Investment Profile:
+- Risk Tolerance: {summary.get('riskTolerance', 'Moderate')}
+- Investment Goals: {summary.get('investmentGoals', 'Long-term growth')}
+- Time Horizon: {summary.get('timeHorizon', '5+ years')}"""
+            
+            return portfolio_text
+            
+        except Exception as e:
+            logger.error(f"Failed to get portfolio data for user {user_id}: {e}")
+            return "Unable to retrieve portfolio data at this time."
     
     def _analyze_multi_agent_needs(self, user_message: str, user_context: Dict = None) -> List[str]:
         """Analyze if query requires multiple agents"""
